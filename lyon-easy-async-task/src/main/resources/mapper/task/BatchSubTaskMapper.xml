@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lyon.easy.async.task.dal.mysql.task.BatchSubTaskMapper">
+<!--    <update id="lockSubTask">-->
+<!--    update ${tablePrefix}sub_task-->
+<!--    set lock_status=1,-->
+<!--        lock_expire_in = #{expireIn},-->
+<!--        lock_owner = #{lockOwner},-->
+<!--        client_id = #{clientId}-->
+<!--    where id = #{id}-->
+<!--      and lock_status = 0-->
+<!--</update>-->
+
+<!--    <update id="releaseLock">-->
+<!--        update ${tablePrefix}sub_task-->
+<!--        set lock_status = 0,-->
+<!--        status = #{exec_status},-->
+<!--        lock_expire_in = null-->
+<!--        <where>-->
+<!--            AND id = #{id}-->
+<!--            AND client_id = #{clientId}-->
+<!--            AND lock_owner = #{owner}-->
+<!--        </where>-->
+<!--    </update>-->
+
+<!--    <select id="chooseSubTask" resultType="com.lyon.easy.async.task.dal.dataobject.task.SubTaskDO">-->
+<!--        select *-->
+<!--        from ${tablePrefix}sub_task-->
+<!--        <where>-->
+<!--            AND idc = #{idc}-->
+<!--            AND lock_status = 0-->
+<!--            AND CONTAINS(#{groups},`group_name`)-->
+<!--        </where>-->
+<!--        limit #{taskLimit}-->
+<!--    </select>-->
+
+<!--    <update id="releaseLockWhenHeartBeatExpireIn">-->
+<!--        update ${tablePrefix}sub_task-->
+<!--        set lock_status    = 0,-->
+<!--            lock_expire_in = null-->
+<!--        where lock_status = 1-->
+<!--          and client_id = #{clientId}-->
+<!--          and <![CDATA[ lock_expire_in < now() ]]>-->
+<!--    </update>-->
+
+<!--    <update id="renewHeartbeat">-->
+<!--        update ${tablePrefix}sub_task-->
+<!--        set lock_expire_in = #{expireIn}-->
+<!--        where client_id = #{clientId}-->
+<!--    </update>-->
+
+<!--    <update id="updateSuccessWithCompletedSubTask">-->
+
+<!--    </update>-->
+</mapper>
