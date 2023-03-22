@@ -1,6 +1,9 @@
 package com.lyon.easy.async.task.dal.dataobject.task;
 
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.lyon.easy.async.task.dal.dataobject.extend.BaseDO;
 import com.lyon.easy.async.task.enums.ExecStatus;
 import com.lyon.easy.async.task.enums.IdcEnum;
@@ -16,8 +19,10 @@ import java.time.LocalDateTime;
 @SuppressWarnings("jol")
 @Data
 @EqualsAndHashCode(callSuper = true)
+@TableName("sub_task")
 public class SubTaskDO extends BaseDO {
 
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     private Long batchTaskId;
@@ -58,7 +63,7 @@ public class SubTaskDO extends BaseDO {
      * InEnumTypeHandler
      */
     @TableField(typeHandler = EnumTypeHandler.class)
-    private ExecStatus status;
+    private ExecStatus execStatus;
 
     /**
      * 执行器所有人
@@ -71,7 +76,7 @@ public class SubTaskDO extends BaseDO {
     private String clientId;
 
     /**
-     * 锁状态 []
+     * 锁状态[1:已锁,0:无锁]
      */
     private Integer lockStatus;
 

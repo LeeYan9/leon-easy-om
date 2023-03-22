@@ -1,5 +1,6 @@
 package com.lyon.easy.async.task.config;
 
+import com.lyon.easy.async.task.util.ParamsCheckerUtil;
 import lombok.Data;
 
 import java.util.List;
@@ -16,15 +17,20 @@ public class TaskGroupConfig {
 
     private List<String> groups;
 
-    private int taskLimit;
+    private int taskLimit = 20;
 
-    private int execCoreSize;
+    private int execCoreSize = 5;
 
-    private int execMaxSize;
+    private int execMaxSize = 5;
 
-    private int acquireCoreSize;
+//    private int acquireCoreSize = ;
 
-    private String acquireStrategy;
+    private String acquireStrategy = "default";
 
-    private long intervalTimeMills;
+    private long intervalTimeMills = 1000 * 60 * 5;
+
+    public void init(){
+        ParamsCheckerUtil.check(this);
+    }
+
 }

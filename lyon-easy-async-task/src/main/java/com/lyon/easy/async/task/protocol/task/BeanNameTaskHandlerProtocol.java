@@ -7,7 +7,6 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
-import org.springframework.context.annotation.Configuration;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -16,7 +15,6 @@ import java.util.Map;
  * @author Lyon
  */
 @SuppressWarnings("SpringFacetCodeInspection")
-@Configuration
 public class BeanNameTaskHandlerProtocol implements TaskProtocol, TaskHandlerRegister, ApplicationContextAware, SmartInitializingSingleton {
 
     private final Map<String, TaskHandler> taskHandlerMap = new HashMap<>();

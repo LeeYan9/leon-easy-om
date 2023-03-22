@@ -6,6 +6,7 @@ import com.lyon.easy.async.task.data.SubTask;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Mappings;
+import org.mapstruct.Named;
 import org.mapstruct.factory.Mappers;
 
 /**
@@ -24,11 +25,11 @@ public interface SubTaskConverter {
      * @return result
      */
     @Mappings({
-            @Mapping(source = "batchTaskId", target = "batchTaskDO.id"),
-            @Mapping(source = "groupName", target = "batchTaskDO.groupName"),
+            @Mapping(source = "batchTaskDO.id", target = "batchTaskId"),
+            @Mapping(source = "batchTaskDO.groupName", target = "groupName"),
 //            @Mapping(source = "status" , target = "")
     })
-    SubTaskDO from(BatchTaskDO batchTaskDO, SubTask subTask);
+    SubTaskDO from( SubTask subTask,BatchTaskDO batchTaskDO);
 
 
 
@@ -41,8 +42,8 @@ public interface SubTaskConverter {
      * @return result
      */
     @Mappings({
-            @Mapping(source = "batchTaskId", target = "batchTaskDO.id"),
-            @Mapping(source = "groupName", target = "batchTaskDO.groupName"),
+            @Mapping(source = "batchTaskDO.id", target = "batchTaskId"),
+            @Mapping(source = "batchTaskDO.groupName", target = "groupName"),
             @Mapping(source = "idc", target = "idc"),
 //            @Mapping(source = "status" , target = "")
     })
@@ -55,14 +56,24 @@ public interface SubTaskConverter {
      * @return result
      */
     @Mappings({
-            @Mapping(source = "record.id", target = "id"),
-            @Mapping(source = "record.batchTaskId", target = "batchTaskId"),
-            @Mapping(source = "record.idcType", target = "idcType"),
-            @Mapping(source = "record.owner", target = "owner"),
-            @Mapping(source = "record.clientId", target = "clientId"),
-            @Mapping(source = "record.lockStatus", target = "lockStatus"),
-            @Mapping(source = "record.lockExpireAt", target = "lockExpireAt"),
+//            @Mapping(target = "record.id", source = "id"),
+//            @Mapping(target = "record.batchTaskId", source = "batchTaskId"),
+//            @Mapping(target = "record.idcType", source = "idcType"),
+//            @Mapping(target = "record.owner", source = "owner"),
+//            @Mapping(target = "record.clientId", source = "clientId"),
+//            @Mapping(target = "record.lockStatus", source = "lockStatus"),
+//            @Mapping(target = "record.lockExpireAt", source = "lockExpireAt"),
+            @Mapping(target = "record" ,source = "subTaskDO",qualifiedByName = "subTaskDO_to_record")
     })
     SubTask to(SubTaskDO subTaskDO);
+
+//    @Named("subTaskDO_to_record")
+//    default SubTask.ExecRecord subTaskDO_to_record(SubTaskDO subTaskDO){
+//        to
+//    }
+
+    @Mappings({})
+    @Named("subTaskDO_to_record")
+    SubTask.ExecRecord toExecRecord(SubTaskDO subTaskDO);
 
 }

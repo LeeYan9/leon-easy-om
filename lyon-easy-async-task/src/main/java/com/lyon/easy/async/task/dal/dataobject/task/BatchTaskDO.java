@@ -2,6 +2,7 @@ package com.lyon.easy.async.task.dal.dataobject.task;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.lyon.easy.async.task.dal.dataobject.extend.BaseDO;
 import com.lyon.easy.async.task.enums.ExecStatus;
 import com.lyon.easy.async.task.enums.IdcEnum;
@@ -14,6 +15,7 @@ import lombok.EqualsAndHashCode;
 @SuppressWarnings({"jol", "AlibabaRemoveCommentedCode"})
 @Data
 @EqualsAndHashCode(callSuper = true)
+@TableName("batch_task")
 public class BatchTaskDO extends BaseDO {
 
     /**

@@ -11,6 +11,7 @@ import com.lyon.easy.async.task.factory.DefaultTaskHandlerFactory;
 import com.lyon.easy.async.task.factory.TaskHandlerFactory;
 import com.lyon.easy.async.task.protocol.idc.IdcProtocol;
 import com.lyon.easy.async.task.protocol.idc.PrefixMatchingIdcProtocol;
+import com.lyon.easy.async.task.protocol.task.BeanNameTaskHandlerProtocol;
 import com.lyon.easy.async.task.protocol.task.TaskProtocol;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -30,7 +31,7 @@ public class BatchTaskAutoConfiguration {
 
 
     @ConditionalOnMissingBean
-    @Bean("init")
+    @Bean(initMethod = "init")
     public IdcProtocol idcProtocol(IdcProperties idcProperties) {
         final PrefixMatchingIdcProtocol protocol = new PrefixMatchingIdcProtocol();
         protocol.setIdcProperties(idcProperties);
@@ -41,6 +42,12 @@ public class BatchTaskAutoConfiguration {
     @Bean
     public IdcContainer idcContainer(IdcProtocol idcProtocol) {
         return new IdcContainer(idcProtocol);
+    }
+
+    @ConditionalOnMissingBean
+    @Bean
+    public TaskProtocol beanNameTaskHandlerProtocol(){
+        return new BeanNameTaskHandlerProtocol();
     }
 
     @ConditionalOnMissingBean

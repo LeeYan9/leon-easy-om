@@ -47,15 +47,15 @@ public class BatchTaskManager implements ApplicationContextAware, SmartInitializ
 
     private final MachineId machineId;
 
-    private ExecutorManager executorManager;
+    private final ExecutorManager executorManager;
 
     private final TaskHandlerFactory taskHandlerFactory;
 
     private final IdcContainer idcContainer;
 
-    private AcquireTaskService acquireTaskService;
+    private final AcquireTaskService acquireTaskService;
 
-    private BatchTaskHeartBeatReactor heartBeatReactor;
+    private final BatchTaskHeartBeatReactor heartBeatReactor;
 
     @Resource
     @Getter
@@ -75,14 +75,16 @@ public class BatchTaskManager implements ApplicationContextAware, SmartInitializ
         this.taskHandlerFactory = taskHandlerFactory;
         this.machineId = new MachineId(idcContainer);
         ParamsCheckerUtil.check(this.executorConfig);
-        this.tablePrefix = "";
-    }
-
-    public void init() {
         ParamsCheckerUtil.check(this);
         this.executorManager = new ExecutorManager(executorConfig);
         this.acquireTaskService = new AcquireTaskService(this);
         this.heartBeatReactor = new BatchTaskHeartBeatReactor(this);
+        this.tablePrefix = "";
+    }
+
+    public void init() {
+        this.heartBeatReactor.init();
+        this.acquireTaskService.init();
     }
 
     public List<SubTaskDO> determineTasksOfExec(TaskGroupConfig taskGroupConfig) {
@@ -109,7 +111,7 @@ public class BatchTaskManager implements ApplicationContextAware, SmartInitializ
         if (IdcEnum.ALL == batchTaskDO.getIdcType()) {
             subTaskDOList = toNonEmptyList(idcContainer.idcList(), idc -> SubTaskConverter.INSTANCE.from(batchTaskDO, subTask, idc));
         } else {
-            subTaskDOList = List.of(SubTaskConverter.INSTANCE.from(batchTaskDO, subTask));
+            subTaskDOList = List.of(SubTaskConverter.INSTANCE.from( subTask,batchTaskDO));
         }
         return subTaskDOList;
     }

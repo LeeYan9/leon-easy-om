@@ -3,6 +3,7 @@ package com.lyon.easy.async.task.protocol.idc;
 import com.lyon.easy.async.task.config.idc.IdcProperties;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -15,11 +16,11 @@ public abstract class AbstractIdcProtocol implements IdcProtocol {
 
     protected String idc;
 
-    protected List<String> idcList;
+    protected List<String> idcList = new ArrayList<>();
 
     @Override
     public String getIdc() {
-        return null;
+        return this.idc;
     }
 
 }

@@ -1,10 +1,13 @@
 package com.lyon.easy.common.utils;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -29,6 +32,21 @@ public class CollUtils {
 
     public static <E> E filterFirst(Collection<E> coll, Predicate<E> predicate) {
         return isEmpty(coll) ? null : coll.stream().filter(predicate).findFirst().orElse(null);
+    }
+
+    public static <T,K,V>  Map<K,V> convertMap(Collection<T> from , Function<T,K> keyFunc ,
+                                               Function<T,V> valueFunc) {
+        return convertMap(from,keyFunc,valueFunc,(v, v2) -> v,HashMap::new);
+    }
+
+    public static <T,K,V> Map<K,V> convertMap(Collection<T> from ,
+                                              Function<T,K> keyFunc ,
+                                              Function<T,V> valFunc ,
+                                              BinaryOperator<V> mergeFunc , Supplier<? extends Map<K,V>> supplier){
+        if (isEmpty(from)) {
+            return supplier.get();
+        }
+        return from.stream().collect(Collectors.toMap(keyFunc,valFunc,mergeFunc,supplier));
     }
 
     public static <E> boolean isEmpty(Collection<E> coll) {
