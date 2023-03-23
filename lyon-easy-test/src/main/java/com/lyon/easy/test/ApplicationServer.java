@@ -4,6 +4,7 @@ import cn.hutool.core.net.NetUtil;
 import com.alibaba.druid.spring.boot.autoconfigure.DruidDataSourceAutoConfigure;
 import com.lyon.easy.common.utils.HostUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
@@ -15,13 +16,14 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 /**
  * @author Lyon
  */
-@SpringBootApplication(exclude = {DruidDataSourceAutoConfigure.class, DataSourceAutoConfiguration.class})
+@SpringBootApplication(exclude = {DataSourceAutoConfiguration.class})
 @EnableAspectJAutoProxy(exposeProxy = true, proxyTargetClass = true)
 @EnableTransactionManagement(proxyTargetClass = true)
+@MapperScan(value = "com.lyon.easy.async.task.dal.mysql")
 @Slf4j
 public class ApplicationServer {
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         ConfigurableApplicationContext run = SpringApplication.run(ApplicationServer.class, args);
         ConfigurableEnvironment env = run.getEnvironment();
         String port = env.getProperty("server.port", "8003");

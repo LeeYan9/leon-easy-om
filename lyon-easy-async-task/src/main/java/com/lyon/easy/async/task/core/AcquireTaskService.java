@@ -3,15 +3,14 @@ package com.lyon.easy.async.task.core;
 import cn.hutool.core.date.SystemClock;
 import cn.hutool.core.lang.Assert;
 import cn.hutool.core.thread.ThreadFactoryBuilder;
+import com.google.common.primitives.Ints;
 import com.lyon.easy.async.task.config.ExecutorConfig;
 import com.lyon.easy.async.task.config.TaskGroupConfig;
-import com.lyon.easy.async.task.core.strategy.AcquireStrategy;
-import com.lyon.easy.async.task.core.strategy.DefaultAcquireStrategy;
+import com.lyon.easy.async.task.core.strategy.TaskAcquireStrategy;
+import com.lyon.easy.async.task.core.strategy.DefaultTaskAcquireStrategy;
 import com.lyon.easy.async.task.dal.dataobject.task.SubTaskDO;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import com.lyon.easy.common.utils.CollUtils;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
@@ -22,7 +21,7 @@ import java.util.concurrent.*;
 /**
  * @author Lyon
  */
-@SuppressWarnings({"unused", "unchecked", "rawtypes"})
+@SuppressWarnings({"unused", "unchecked", "rawtypes", "AlibabaAvoidManuallyCreateThread"})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -37,25 +36,23 @@ public class AcquireTaskService {
      */
     private ExecutorConfig executorConfig;
 
-    private Map<String, AcquireStrategy> acquireTaskTimingStrategyMap = new HashMap<>();
+    private Map<String, TaskAcquireStrategy> acquireTaskTimingStrategyMap = new HashMap<>();
 
-    private DelayQueue delayQueue = new DelayQueue();
+    private DelayQueue<TaskAcquireDelayRunnable> delayQueue = new DelayQueue();
 
     private BatchTaskManager taskManager;
 
     private ThreadPoolExecutor acquireTaskExecutors;
+
+    private volatile boolean running;
 
     public AcquireTaskService(BatchTaskManager taskManager) {
         this.taskManager = taskManager;
         this.executorConfig = taskManager.getExecutorConfig();
         // init acquire task srv
         final int taskGroupSize = executorConfig.getTaskGroupConfigs().size();
-        final ThreadFactory threadFactory = ThreadFactoryBuilder.create().setNamePrefix("acquire-task-srv-").build();
-        this.acquireTaskExecutors = new ThreadPoolExecutor(taskGroupSize, taskGroupSize * 2,
-                1, TimeUnit.MILLISECONDS, delayQueue, threadFactory);
-        // 后期支持 custom spi
-        final DefaultAcquireStrategy defaultAcquireStrategy = new DefaultAcquireStrategy();
-        acquireTaskTimingStrategyMap.put(defaultAcquireStrategy.type(), defaultAcquireStrategy);
+        final ThreadFactory threadFactory = buildThreadFactory("[acquire-task-srv]-", false);
+
     }
 
     public void atOnceAcquire(String group) {
@@ -67,13 +64,30 @@ public class AcquireTaskService {
     }
 
     public void init() {
+        // 后期支持 custom spi
+        final DefaultTaskAcquireStrategy defaultAcquireStrategy = new DefaultTaskAcquireStrategy();
+        acquireTaskTimingStrategyMap.put(defaultAcquireStrategy.type(), defaultAcquireStrategy);
         final int groupSize = executorConfig.getTaskGroupConfigs().size();
-        final ThreadFactory threadFactory = ThreadFactoryBuilder.create().setNamePrefix("acquire-Task-").build();
+        ThreadFactory threadFactory = buildThreadFactory("acquire-Task-", false);
         acquireTaskExecutors = new ThreadPoolExecutor(groupSize, groupSize * 2,
-                1, TimeUnit.MINUTES, delayQueue, threadFactory);
+                1, TimeUnit.MINUTES, new SynchronousQueue<>(), threadFactory);
+
         executorConfig
                 .getTaskGroupConfigs()
-                .forEach(taskGroupConfig -> acquireTaskExecutors.submit(new TaskAcquireDelayRunnable(taskGroupConfig)));
+                .forEach(taskGroupConfig -> delayQueue.add(new TaskAcquireDelayRunnable(taskGroupConfig, SystemClock.now(), false)));
+
+        this.running = true;
+        ThreadFactory threadFactory0 = buildThreadFactory("delay-checker-", true);
+        threadFactory0.newThread(new DelayCheckerRunnable()).start();
+    }
+
+    private ThreadFactory buildThreadFactory(String s, boolean daemon) {
+        return ThreadFactoryBuilder
+                .create()
+                .setDaemon(daemon)
+                .setNamePrefix(s)
+                .setUncaughtExceptionHandler((thread, throwable) -> log.error("{} thread pool error", s, throwable))
+                .build();
     }
 
     @AllArgsConstructor
@@ -92,41 +106,68 @@ public class AcquireTaskService {
 
         @Override
         public long getDelay(TimeUnit unit) {
-            return unit.convert(this.nextTimeStamp - SystemClock.now(), TimeUnit.MILLISECONDS);
+            long diff = this.nextTimeStamp - System.currentTimeMillis();
+            return unit.convert(diff, TimeUnit.MILLISECONDS);
         }
 
         @Override
-        public int compareTo(Delayed delayed) {
-            return (int) (delayed.getDelay(TimeUnit.MILLISECONDS) - this.nextTimeStamp);
+        public int compareTo(@SuppressWarnings("NullableProblems") Delayed delayed) {
+            TaskAcquireDelayRunnable delayRunnable = ((TaskAcquireDelayRunnable) delayed);
+            return Ints.saturatedCast(this.nextTimeStamp - delayRunnable.nextTimeStamp);
         }
 
         @Override
         public void run() {
+            String executorId = taskGroupConfig.getExecutorId();
             try {
+                log.info("[acquire-task-srv] [{}] start acquire task-list ", executorId);
                 // do something
                 List<SubTaskDO> taskDOList = taskManager.determineTasksOfExec(taskGroupConfig);
                 if (taskDOList.isEmpty()) {
-                    log.info("acquire-task-service get sub-task-list is empty ");
+                    log.info("[acquire-task-srv] ignore task list , acquire task-list is empty ");
                     return;
                 }
+                final List<String> jobNos = CollUtils.toList(taskDOList, SubTaskDO::getJobNo);
+                log.info("[acquire-task-srv] [{}] acquire task-list jobNos [{}] ", executorId, jobNos);
                 for (SubTaskDO task : taskDOList) {
+                    log.info("[acquire-task-srv] [{}] ready submit task jobNo [{}] ", executorId, task.getJobNo());
                     taskManager.kernelExecTask(taskGroupConfig, task);
                 }
             } catch (Exception e) {
-                log.error("acquire-task-service exec error", e);
+                log.error("[acquire-task-srv] execute error", e);
             } finally {
                 if (!once) {
-                    final long nextTimestamp = acquireNextTimestamp(taskGroupConfig);
-                    acquireTaskExecutors.submit(new TaskAcquireDelayRunnable(taskGroupConfig, nextTimestamp, false));
+                    // 准备下次打捞任务
+                    final long nextTimestamp = getNextTimestamp(taskGroupConfig);
+                    delayQueue.add(new TaskAcquireDelayRunnable(taskGroupConfig, nextTimestamp, false));
+                    log.info("[acquire-task-srv] [{}] wait next acquire task-list nextTimeMs[{}] intervalMs[{}] "
+                            , taskGroupConfig.getExecutorId(), nextTimestamp, nextTimestamp - SystemClock.now());
                 }
             }
         }
 
-        private long acquireNextTimestamp(TaskGroupConfig taskGroupConfig) {
+        private long getNextTimestamp(TaskGroupConfig taskGroupConfig) {
             final String acquireStrategy = taskGroupConfig.getAcquireStrategy();
-            final AcquireStrategy strategy = acquireTaskTimingStrategyMap.get(acquireStrategy);
-            return strategy.acquireNextTimestamp(taskGroupConfig.getIntervalTimeMills());
+            final TaskAcquireStrategy strategy = acquireTaskTimingStrategyMap.get(acquireStrategy);
+            return strategy.getNextTimestamp(taskGroupConfig.getIntervalTimeMills());
         }
     }
 
+    class DelayCheckerRunnable implements Runnable {
+        @Override
+        public void run() {
+            while (running) {
+                try {
+                    final TaskAcquireDelayRunnable taskAcquireDelayRunnable = delayQueue.take();
+                    final TaskGroupConfig taskGroupConfig = taskAcquireDelayRunnable.taskGroupConfig;
+                    log.info("[delay-checker] push [acquire-task-srv] [{}]", taskGroupConfig.getExecutorId());
+                    acquireTaskExecutors.execute(taskAcquireDelayRunnable);
+                } catch (InterruptedException e) {
+                    log.error("[delay-checker] interrupted error", e);
+                } catch (Exception e) {
+                    log.error("[delay-checker] error", e);
+                }
+            }
+        }
+    }
 }

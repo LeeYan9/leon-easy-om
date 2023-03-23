@@ -1,8 +1,11 @@
 package com.lyon.easy.async.task.enums;
 
+import com.google.common.collect.Lists;
 import com.lyon.easy.async.task.annotation.EnumValue;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+
+import java.util.List;
 
 /**
  * @author lyon
@@ -21,7 +24,11 @@ public enum ExecStatus {
     PAIR(3, "部分执行成功"),
 
     ;
+
+    public static final List<ExecStatus> RUN_STATUES = Lists.newArrayList(SUCCESS,RUNNING,PAIR);
+
     @EnumValue
+    @com.baomidou.mybatisplus.annotation.EnumValue
     private final int code;
     private final String desc;
 }

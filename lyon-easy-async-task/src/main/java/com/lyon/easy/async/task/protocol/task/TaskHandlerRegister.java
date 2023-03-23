@@ -1,17 +1,18 @@
 package com.lyon.easy.async.task.protocol.task;
 
-import com.lyon.easy.async.task.handler.TaskHandler;
+import com.lyon.easy.async.task.handler.BatchTaskHandler;
 
 /**
  * @author Lyon
  */
+@SuppressWarnings("unused")
 public interface TaskHandlerRegister {
 
     /**
      * 任务处理器注册
      *
-     * @param taskHandler 任务处理器
+     * @param batchTaskHandler 任务处理器
      */
-    void register(TaskHandler taskHandler);
+    void register(BatchTaskHandler<?> batchTaskHandler);
 
 }

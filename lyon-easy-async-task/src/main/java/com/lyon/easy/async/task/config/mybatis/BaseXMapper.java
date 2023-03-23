@@ -18,17 +18,17 @@ public interface BaseXMapper<T> extends BaseMapper<T> {
      * @return 影响行数
      */
     Integer insertBatchSomeColumn(Collection<T> entityList);
-
-    /**
-     * 批量插入
-     * @param entityList 实体列表
-     * @return 影响行数
-     */
-    default Integer insertBatch(Collection<T> entityList){
-        if (entityList.size() == 1) {
-           return insert(CollUtil.getFirst(entityList));
-        }
-        return insertBatchSomeColumn(entityList);
-    }
+//
+//    /**
+//     * 批量插入
+//     * @param entityList 实体列表
+//     * @return 影响行数
+//     */
+//    default Integer insertBatch(Collection<T> entityList){
+//        if (entityList.size() == 1) {
+//           return insert(CollUtil.getFirst(entityList));
+//        }
+//        return insertBatchSomeColumn(entityList);
+//    }
 
 }

@@ -29,6 +29,7 @@ public class AsyncTaskExecutorConfig {
         taskGroupConfig.setExecutorId("mall-executor");
         taskGroupConfig.setExecCoreSize(5);
         taskGroupConfig.setExecMaxSize(20);
+        taskGroupConfig.setIntervalTimeMills(10000);
         taskGroupConfig.setName("mall-executor");
         return taskGroupConfig;
     }

@@ -21,13 +21,13 @@ public interface BatchTaskTemplate {
      * @param batchNo 批次号
      * @return 结果
      */
-    BatchTaskState batchTaskState(String batchNo);
+    BatchTaskState getBatchTaskState(String batchNo);
 
     /**
      * 子任务状态信息
      * @param jobNo 任务编号
      * @return 结果
      */
-    SubTaskState subTaskState(String jobNo);
+    SubTaskState getSubTaskState(String jobNo);
 
 }

@@ -5,15 +5,15 @@ import cn.hutool.core.date.SystemClock;
 /**
  * @author Lyon
  */
-public class DefaultAcquireStrategy implements AcquireStrategy {
+public class DefaultTaskAcquireStrategy implements TaskAcquireStrategy {
 
     @Override
-    public long acquireNextTimestamp(long intervalTimestamp) {
+    public long getNextTimestamp(long intervalTimestamp) {
         return SystemClock.now() + intervalTimestamp;
     }
 
     @Override
-    public long acquireCurrentTimestamp(long intervalTimestamp) {
+    public long getCurrentTimestamp(long intervalTimestamp) {
         return SystemClock.now() + intervalTimestamp * 2;
     }
 

@@ -42,7 +42,7 @@ public class DefaultBatchTaskTemplate implements BatchTaskTemplate {
     }
 
     @Override
-    public BatchTaskState batchTaskState(String batchNo) {
+    public BatchTaskState getBatchTaskState(String batchNo) {
         BatchTaskDO batchTaskDO = batchTaskMapper.selectByBatchNo(batchNo);
         if (Objects.isNull(batchTaskDO)) {
             return null;
@@ -52,7 +52,7 @@ public class DefaultBatchTaskTemplate implements BatchTaskTemplate {
     }
 
     @Override
-    public SubTaskState subTaskState(String jobNo) {
+    public SubTaskState getSubTaskState(String jobNo) {
         SubTaskDO subTaskDO = batchSubTaskMapper.selectByJobNo(jobNo);
         return generateSubTaskState(subTaskDO);
     }
