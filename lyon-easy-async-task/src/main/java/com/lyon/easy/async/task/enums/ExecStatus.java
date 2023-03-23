@@ -12,7 +12,7 @@ import lombok.Getter;
 @Getter
 public enum ExecStatus {
     /**
-     * 任务执行状态
+     * 任务执行状态[-1:失败，0:初始化，1:执行成功,2:运行中，3:部分执行成功]
      */
     FAILED(-1, "失败"),
     INIT(0, "初始化"),

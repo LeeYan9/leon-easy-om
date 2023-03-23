@@ -48,7 +48,8 @@
         <jedis-mock.version>0.1.16</jedis-mock.version>
         <!-- 工具类相关 -->
         <lombok.version>1.18.18</lombok.version>
-        <mapstruct.version>1.4.1.Final</mapstruct.version>
+        <mapstruct.version>1.4.2.Final</mapstruct.version>
+        <org.projectlombok.lombok-mapstruct-binding.version>0.2.0</org.projectlombok.lombok-mapstruct-binding.version>
         <hutool.version>5.6.1</hutool.version>
         <easyexcel.verion>2.2.7</easyexcel.verion>
         <velocity.version>2.2</velocity.version>
@@ -62,6 +63,7 @@
         <nacos-config-spring-boot.version>0.2.7</nacos-config-spring-boot.version>
         <!--lyon-easy-->
         <lyon-easy.version>1.0-SNAPSHOT</lyon-easy.version>
+        <org.apache.maven.plugins.version>3.8.1</org.apache.maven.plugins.version>
     </properties>
 
     <dependencyManagement>
@@ -81,7 +83,12 @@
             <dependency>
                 <groupId>com.lyon.easy</groupId>
                 <artifactId>lyon-easy-rateLimiter</artifactId>
-                <version>1.0-SNAPSHOT</version>
+                <version>${lyon-easy.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lyon.easy</groupId>
+                <artifactId>lyon-easy-test</artifactId>
+                <version>${lyon-easy.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
@@ -157,6 +164,14 @@
                 <groupId>co.elastic.clients</groupId>
                 <artifactId>elasticsearch-java</artifactId>
                 <version>8.1.0</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-configuration-processor</artifactId>
+                <optional>true</optional>
+                <scope>provided</scope>
+                <version>${spring.boot.version}</version>
             </dependency>
 
             <!-- nacos -->
@@ -337,11 +352,6 @@
             </dependency>
             <dependency>
                 <groupId>org.mapstruct</groupId>
-                <artifactId>mapstruct-jdk8</artifactId>
-                <version>${mapstruct.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.mapstruct</groupId>
                 <artifactId>mapstruct-processor</artifactId>
                 <version>${mapstruct.version}</version>
             </dependency>
@@ -408,6 +418,43 @@
             <!-- SMS SDK end -->
         </dependencies>
     </dependencyManagement>
+
+    <build>
+        <plugins>
+            <!-- 重要的是这个插件配置 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${org.apache.maven.plugins.version}</version>
+                <configuration>
+                    <!-- We don't need to use the source and target properties because we have just declared maven.compiler.[source|target] property-->
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok-mapstruct-binding</artifactId>
+                            <version>${org.projectlombok.lombok-mapstruct-binding.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${mapstruct.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                    <showWarnings>true</showWarnings>
+                    <compilerArgs>
+                        <arg>-Amapstruct.suppressGeneratorTimestamp=true</arg>
+                        <arg>-Amapstruct.suppressGeneratorVersionInfoComment=true</arg>
+                        <arg>-Amapstruct.verbose=true</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
     <repositories>
         <repository>

@@ -12,6 +12,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.List;
@@ -25,6 +26,7 @@ import java.util.concurrent.*;
 @Getter
 @Setter
 @NoArgsConstructor
+@Slf4j
 public class AcquireTaskService {
 
     // 单个线程根据 原始间隔时间、策略、去计算下次拉取时间拉取任务
@@ -49,11 +51,11 @@ public class AcquireTaskService {
         // init acquire task srv
         final int taskGroupSize = executorConfig.getTaskGroupConfigs().size();
         final ThreadFactory threadFactory = ThreadFactoryBuilder.create().setNamePrefix("acquire-task-srv-").build();
-        this.acquireTaskExecutors = new ThreadPoolExecutor(taskGroupSize, taskGroupSize*2,
-                1,TimeUnit.MILLISECONDS,delayQueue,threadFactory);
+        this.acquireTaskExecutors = new ThreadPoolExecutor(taskGroupSize, taskGroupSize * 2,
+                1, TimeUnit.MILLISECONDS, delayQueue, threadFactory);
         // 后期支持 custom spi
         final DefaultAcquireStrategy defaultAcquireStrategy = new DefaultAcquireStrategy();
-        acquireTaskTimingStrategyMap.put(defaultAcquireStrategy.type(),defaultAcquireStrategy);
+        acquireTaskTimingStrategyMap.put(defaultAcquireStrategy.type(), defaultAcquireStrategy);
     }
 
     public void atOnceAcquire(String group) {
@@ -64,7 +66,7 @@ public class AcquireTaskService {
                 .submit(new TaskAcquireDelayRunnable(taskGroupConfig, SystemClock.now(), true));
     }
 
-    public void start() {
+    public void init() {
         final int groupSize = executorConfig.getTaskGroupConfigs().size();
         final ThreadFactory threadFactory = ThreadFactoryBuilder.create().setNamePrefix("acquire-Task-").build();
         acquireTaskExecutors = new ThreadPoolExecutor(groupSize, groupSize * 2,
@@ -104,11 +106,14 @@ public class AcquireTaskService {
                 // do something
                 List<SubTaskDO> taskDOList = taskManager.determineTasksOfExec(taskGroupConfig);
                 if (taskDOList.isEmpty()) {
+                    log.info("acquire-task-service get sub-task-list is empty ");
                     return;
                 }
                 for (SubTaskDO task : taskDOList) {
-                    taskManager.kernelExecTask(taskGroupConfig,task);
+                    taskManager.kernelExecTask(taskGroupConfig, task);
                 }
+            } catch (Exception e) {
+                log.error("acquire-task-service exec error", e);
             } finally {
                 if (!once) {
                     final long nextTimestamp = acquireNextTimestamp(taskGroupConfig);

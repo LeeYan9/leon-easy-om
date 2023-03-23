@@ -74,7 +74,7 @@ public class DefaultBatchTaskTemplate implements BatchTaskTemplate {
         final SubTaskState subTaskState = new SubTaskState();
         subTaskState.setSubTask(new TaskExecStateDesc<>());
         final SubTask subTask = SubTaskConverter.INSTANCE.to(subTaskDO);
-        subTaskState.getSubTask().setStatus(subTaskDO.getStatus());
+        subTaskState.getSubTask().setStatus(subTaskDO.getExecStatus());
         subTaskState.getSubTask().setResultMsg(subTaskDO.getResult());
         subTaskState.getSubTask().setData(subTask);
         return subTaskState;

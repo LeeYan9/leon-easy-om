@@ -68,7 +68,7 @@ public interface BatchSubTaskMapper extends BaseXMapper<SubTaskDO> {
                 .isNull(SubTaskDO::getClientId)
                 .isNull(SubTaskDO::getLockExpireAt);
         final SubTaskDO updateEntity = new SubTaskDO();
-        updateEntity.setStatus(execStatus);
+        updateEntity.setExecStatus(execStatus);
         return update(updateEntity, wrapper);
     }
 
@@ -95,7 +95,7 @@ public interface BatchSubTaskMapper extends BaseXMapper<SubTaskDO> {
                             .or().eq(SubTaskDO::getIdc, idc)
                             .or().eq(SubTaskDO::getIdc, IdcEnum.ANY);
                 })
-                .apply(" and CONTAINS(" + groupNames + ",`group_name`) ")
+                .apply(" FIND_IN_SET(\"" + groupNames + "\",`group_name`) ")
                 .last(" limit " + taskLimit);
         return selectList(queryWrapper);
     }
@@ -111,7 +111,7 @@ public interface BatchSubTaskMapper extends BaseXMapper<SubTaskDO> {
         updateDO.setLockStatus(EnableEnum.NO.ordinal());
         final LambdaUpdateWrapper<SubTaskDO> updateWrapper = Wrappers.lambdaUpdate(SubTaskDO.class);
         updateWrapper
-                .apply(" and lock_expire_in < now()")
+                .apply(" lock_expire_in < now()")
                 .isNotNull(SubTaskDO::getLockStatus)
                 .isNull(SubTaskDO::getLockExpireAt)
                 .isNull(SubTaskDO::getOwner)

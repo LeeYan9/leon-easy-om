@@ -177,7 +177,6 @@
 
     <!-- 根Logger节点，最顶级-->
     <root level = "DEBUG">
-        <appender-ref ref="com.lyon.easy"/>
         <appender-ref ref="STDOUT" />
         <appender-ref ref="INFO" />
     </root>

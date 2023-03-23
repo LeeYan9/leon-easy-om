@@ -1,10 +1,9 @@
 package com.lyon.easy.async.task.protocol.idc;
 
-import cn.hutool.core.net.NetUtil;
 import cn.hutool.core.util.StrUtil;
 import com.lyon.easy.async.task.util.ParamsCheckerUtil;
+import com.lyon.easy.common.utils.HostUtils;
 
-import java.net.InetAddress;
 import java.util.List;
 import java.util.Map;
 
@@ -16,13 +15,15 @@ public class PrefixMatchingIdcProtocol extends AbstractIdcProtocol {
     @Override
     public void init() {
         ParamsCheckerUtil.check(idcProperties);
-        final Map<String, String> matchIpList = idcProperties.getMatchIpList();
-        matchIpList.forEach((idc, ipPrefixStr) -> {
-            final InetAddress address = NetUtil.getLocalhost();
+        final Map<String, List<String>> matchIpList = idcProperties.getMatchIpList();
+        matchIpList.forEach((idc, ipPrefixList) -> {
+            final String address = HostUtils.getHostIp();
             idcList.add(idc);
-            if (StrUtil.startWith(address.getHostAddress(), ipPrefixStr)) {
-                this.idc = idc;
-            }
+            ipPrefixList.forEach(ipPrefixStr -> {
+                if (StrUtil.startWith(address, ipPrefixStr)) {
+                    this.idc = idc;
+                }
+            });
         });
     }
 

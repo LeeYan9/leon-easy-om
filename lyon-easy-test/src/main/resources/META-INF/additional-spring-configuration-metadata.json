@@ -1,0 +1,33 @@
+{
+  "properties": [
+    {
+      "name": "server.env",
+      "type": "java.lang.String",
+      "description": "Description for server.env."
+    },
+    {
+      "name": "async-task.datasource.druid.url",
+      "type": "java.lang.String",
+      "description": "Description for async-task.datasource.druid.url."
+    },
+    {
+      "name": "async-task.datasource.druid.username",
+      "type": "java.lang.String",
+      "description": "Description for async-task.datasource.druid.username."
+    },
+    {
+      "name": "async-task.datasource.druid.password",
+      "type": "java.lang.String",
+      "description": "Description for async-task.datasource.druid.password."
+    },
+    {
+      "name": "async-task.datasource.druid.driver",
+      "type": "java.lang.String",
+      "description": "Description for async-task.datasource.druid.driver."
+    },
+    {
+      "name": "async-task.datasource.druid.active-connections",
+      "type": "java.lang.String",
+      "description": "Description for async-task.datasource.druid.active-connections."
+    }
+  ] }

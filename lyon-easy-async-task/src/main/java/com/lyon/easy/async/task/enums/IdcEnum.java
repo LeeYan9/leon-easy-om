@@ -12,7 +12,7 @@ import lombok.Getter;
 @Getter
 public enum IdcEnum {
     /**
-     * 机房消费类型 [SINGLE-某个机房,自定义匹配,ALL-所有机房]
+     * 机房消费类型 [0:任意某个机房消费,1:所有机房都必须消费]
      */
     ANY(0, "任意单机房消费"),
     //        CUSTOM,
