@@ -3,17 +3,19 @@ package com.lyon.easy.async.task.config;
 import com.lyon.easy.common.utils.CollUtils;
 import lombok.Data;
 
+import javax.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 /**
+ * 执行器配置
  * @author Lyon
  */
 @Data
 public class ExecutorConfig {
 
-    private List<TaskGroupConfig> taskGroupConfigs = new ArrayList<>();
+    private List<@Valid TaskGroupConfig> taskGroupConfigs = new ArrayList<>();
 
     private long hearBeatTimeMills = 1000 * 60 * 5;
 

@@ -19,6 +19,7 @@ public enum IdcEnum {
     ALL(1, "所有机房消费"),
     ;
     @EnumValue
+    @com.baomidou.mybatisplus.annotation.EnumValue
     private final int code;
     private final String desc;
 }

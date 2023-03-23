@@ -3,21 +3,21 @@ package com.lyon.easy.async.task.core.strategy;
 /**
  * @author Lyon
  */
-public interface AcquireStrategy {
+public interface TaskAcquireStrategy {
 
     /**
      * get next
      * @param intervalTimestamp interval timestamp
      * @return next
      */
-    long acquireNextTimestamp(long intervalTimestamp);
+    long getNextTimestamp(long intervalTimestamp);
 
     /**
      * get current
      * @param intervalTimestamp interval timestamp
      * @return current
      */
-    long acquireCurrentTimestamp(long intervalTimestamp);
+    long getCurrentTimestamp(long intervalTimestamp);
 
     /**
      * type

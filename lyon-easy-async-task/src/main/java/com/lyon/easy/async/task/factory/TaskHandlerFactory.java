@@ -1,6 +1,6 @@
 package com.lyon.easy.async.task.factory;
 
-import com.lyon.easy.async.task.handler.TaskHandler;
+import com.lyon.easy.async.task.handler.BatchTaskHandler;
 
 /**
  * @author Lyon
@@ -14,5 +14,5 @@ public interface TaskHandlerFactory {
      * @param taskAddress 任务地址
      * @return 批任务
      */
-    TaskHandler getNonNullHandler(String taskAddress);
+    BatchTaskHandler getNonNullHandler(String taskAddress);
 }

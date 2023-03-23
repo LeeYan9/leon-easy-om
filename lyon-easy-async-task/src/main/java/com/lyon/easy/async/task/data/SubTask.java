@@ -3,6 +3,7 @@ package com.lyon.easy.async.task.data;
 import com.lyon.easy.async.task.enums.IdcEnum;
 import lombok.Data;
 
+import javax.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 
 /**
@@ -14,6 +15,7 @@ public class SubTask {
     /**
      * 任务编号
      */
+    @NotBlank(message = "任务编号不能为空")
     private String jobNo;
 
     /**
@@ -24,6 +26,7 @@ public class SubTask {
     /**
      * 任务组：批处理组件通过所属组执行器进行打捞，执行
      */
+    @NotBlank(message = "任务组不能为空")
     private String groupName;
 
     /**
@@ -31,6 +34,7 @@ public class SubTask {
      * bean://{{beanName}}
      * class://{{className}}
      */
+    @NotBlank(message = "任务地址")
     private String taskAddress;
 
     private ExecRecord record;

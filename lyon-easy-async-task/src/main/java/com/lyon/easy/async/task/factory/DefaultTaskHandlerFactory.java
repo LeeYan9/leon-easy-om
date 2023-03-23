@@ -1,30 +1,31 @@
 package com.lyon.easy.async.task.factory;
 
-import com.lyon.easy.async.task.handler.TaskHandler;
-import com.lyon.easy.async.task.protocol.task.TaskProtocol;
+import com.lyon.easy.async.task.handler.BatchTaskHandler;
+import com.lyon.easy.async.task.protocol.task.TaskHandlerProtocol;
 
 import java.util.List;
 
 /**
  * @author Lyon
  */
+@SuppressWarnings("rawtypes")
 public class DefaultTaskHandlerFactory implements TaskHandlerFactory {
 
-    private final List<TaskProtocol> taskProtocols;
+    private final List<TaskHandlerProtocol> taskHandlerProtocols;
 
-    public DefaultTaskHandlerFactory(List<TaskProtocol> taskProtocols) {
-        this.taskProtocols = taskProtocols;
+    public DefaultTaskHandlerFactory(List<TaskHandlerProtocol> taskHandlerProtocols) {
+        this.taskHandlerProtocols = taskHandlerProtocols;
     }
 
     @Override
-    public TaskHandler getNonNullHandler(String taskAddress) {
-        TaskHandler taskHandler = null;
-        for (TaskProtocol taskProtocol : taskProtocols) {
-            final boolean support = taskProtocol.support(taskAddress);
+    public BatchTaskHandler getNonNullHandler(String taskAddress) {
+        BatchTaskHandler batchTaskHandler = null;
+        for (TaskHandlerProtocol taskHandlerProtocol : taskHandlerProtocols) {
+            final boolean support = taskHandlerProtocol.support(taskAddress);
             if (support) {
-                taskHandler = taskProtocol.getHandler(taskAddress);
+                batchTaskHandler = taskHandlerProtocol.getHandler(taskAddress);
             }
         }
-        return taskHandler;
+        return batchTaskHandler;
     }
 }

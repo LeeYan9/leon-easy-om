@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.lyon.easy.async.task.config.mybatis.handler.InEnumTypeHandler;
 import com.lyon.easy.async.task.dal.dataobject.extend.BaseDO;
 import com.lyon.easy.async.task.enums.ExecStatus;
 import com.lyon.easy.async.task.enums.IdcEnum;
@@ -16,7 +17,7 @@ import java.time.LocalDateTime;
 /**
  * @author Lyon
  */
-@SuppressWarnings("jol")
+@SuppressWarnings({"jol", "DanglingJavadoc"})
 @Data
 @EqualsAndHashCode(callSuper = true)
 @TableName("sub_task")
@@ -52,6 +53,7 @@ public class SubTaskDO extends BaseDO {
     /**
      * 消费机房类型
      */
+//    @TableField(value = "idc_type",typeHandler = InEnumTypeHandler.class)
     private IdcEnum idcType;
 
     /**
@@ -62,7 +64,8 @@ public class SubTaskDO extends BaseDO {
     /**
      * InEnumTypeHandler
      */
-    @TableField(typeHandler = EnumTypeHandler.class)
+//    @TableField(typeHandler = EnumTypeHandler.class)
+//    @TableField(value = "exec_status",typeHandler = InEnumTypeHandler.class)
     private ExecStatus execStatus;
 
     /**

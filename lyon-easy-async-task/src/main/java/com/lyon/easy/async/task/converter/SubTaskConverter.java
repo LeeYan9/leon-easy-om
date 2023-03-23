@@ -20,25 +20,23 @@ public interface SubTaskConverter {
     /**
      * convert subTask to SubTaskDO
      *
-     * @param subTask task
+     * @param subTask     task
      * @param batchTaskDO batch task
      * @return result
      */
     @Mappings({
             @Mapping(source = "batchTaskDO.id", target = "batchTaskId"),
             @Mapping(source = "batchTaskDO.groupName", target = "groupName"),
-//            @Mapping(source = "status" , target = "")
     })
-    SubTaskDO from( SubTask subTask,BatchTaskDO batchTaskDO);
-
+    SubTaskDO from(SubTask subTask, BatchTaskDO batchTaskDO);
 
 
     /**
      * convert subTask to SubTaskDO
      *
-     * @param subTask task
+     * @param subTask     task
      * @param batchTaskDO batchTaskDO
-     * @param idc idc
+     * @param idc         idc
      * @return result
      */
     @Mappings({
@@ -63,7 +61,7 @@ public interface SubTaskConverter {
 //            @Mapping(target = "record.clientId", source = "clientId"),
 //            @Mapping(target = "record.lockStatus", source = "lockStatus"),
 //            @Mapping(target = "record.lockExpireAt", source = "lockExpireAt"),
-            @Mapping(target = "record" ,source = "subTaskDO",qualifiedByName = "subTaskDO_to_record")
+            @Mapping(target = "record", source = "subTaskDO", qualifiedByName = "subTaskDO_to_record")
     })
     SubTask to(SubTaskDO subTaskDO);
 

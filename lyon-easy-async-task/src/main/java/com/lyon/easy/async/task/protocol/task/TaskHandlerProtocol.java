@@ -1,11 +1,11 @@
 package com.lyon.easy.async.task.protocol.task;
 
-import com.lyon.easy.async.task.handler.TaskHandler;
+import com.lyon.easy.async.task.handler.BatchTaskHandler;
 
 /**
  * @author Lyon
  */
-public interface TaskProtocol {
+public interface TaskHandlerProtocol {
 
     /**
      * 获取任务
@@ -13,7 +13,7 @@ public interface TaskProtocol {
      * @param taskAddress 任务地址
      * @return 批任务标识
      */
-    TaskHandler getHandler(String taskAddress);
+    BatchTaskHandler getHandler(String taskAddress);
 
     /**
      * 协议支持判断
@@ -21,4 +21,9 @@ public interface TaskProtocol {
      * @return flag
      */
     boolean support(String taskAddress);
+
+    /**
+     * initialize
+     */
+    void init();
 }

@@ -1,8 +1,11 @@
 package com.lyon.easy.async.task.dal.dataobject.task;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler;
+import com.lyon.easy.async.task.config.mybatis.handler.InEnumTypeHandler;
 import com.lyon.easy.async.task.dal.dataobject.extend.BaseDO;
 import com.lyon.easy.async.task.enums.ExecStatus;
 import com.lyon.easy.async.task.enums.IdcEnum;
@@ -52,11 +55,14 @@ public class BatchTaskDO extends BaseDO {
     /**
      * 消费机房类型
      */
+//    @TableField(value = "idc_type",typeHandler = MybatisEnumTypeHandler.class)
     private IdcEnum idcType;
 
     /**
      * 执行状态
      */
+//    @TableField(value = "exec_status",typeHandler = MybatisEnumTypeHandler.class)
+
     private ExecStatus execStatus;
 
     /**

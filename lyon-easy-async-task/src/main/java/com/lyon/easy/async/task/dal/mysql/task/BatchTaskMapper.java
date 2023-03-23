@@ -26,23 +26,24 @@ public interface BatchTaskMapper extends BaseXMapper<BatchTaskDO> {
         final BatchTaskDO updateDO = new BatchTaskDO();
         updateDO.setExecStatus(ExecStatus.SUCCESS);
         updateWrapper
-                .eq(BatchTaskDO::getId, batchTaskId).
-                notExists(
-                        "(select count(1) from ${tablePrefix}sub_task " +
-                                "        and batch_task_id = #{batchTaskId} " +
-                                "        and exec_status  <![CDATA[ <>1  ]]> " +
-                                "            )");
+                .eq(BatchTaskDO::getId, batchTaskId)
+                .ne(BatchTaskDO::getExecStatus, ExecStatus.SUCCESS.getCode())
+                .notExists(
+                        "(select * from sub_task " +
+                                "        where batch_task_id = " + batchTaskId +
+                                "        and exec_status <>1 )");
         return update(updateDO, updateWrapper);
     }
 
     /**
      * 根据批次号查询批次任务详情
+     *
      * @param batchNo 批次号
      * @return 详情
      */
-   default BatchTaskDO selectByBatchNo(String batchNo){
-       final LambdaQueryWrapper<BatchTaskDO> lambdaQuery = Wrappers.lambdaQuery(BatchTaskDO.class);
-       lambdaQuery.eq(BatchTaskDO::getBatchNo,batchNo);
-       return selectOne(lambdaQuery);
-   }
+    default BatchTaskDO selectByBatchNo(String batchNo) {
+        final LambdaQueryWrapper<BatchTaskDO> lambdaQuery = Wrappers.lambdaQuery(BatchTaskDO.class);
+        lambdaQuery.eq(BatchTaskDO::getBatchNo, batchNo);
+        return selectOne(lambdaQuery);
+    }
 }
