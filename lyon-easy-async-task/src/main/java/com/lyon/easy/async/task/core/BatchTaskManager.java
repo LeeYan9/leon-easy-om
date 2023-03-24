@@ -22,12 +22,14 @@ import com.lyon.easy.async.task.enums.IdcEnum;
 import com.lyon.easy.async.task.factory.TaskHandlerFactory;
 import com.lyon.easy.async.task.handler.BatchTaskHandler;
 import com.lyon.easy.async.task.util.ParamsCheckerUtil;
+import com.lyon.easy.async.task.util.RuntimeTaskUtil;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -35,6 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -45,7 +48,7 @@ import static com.lyon.easy.common.utils.CollUtils.toNonEmptyList;
  */
 @SuppressWarnings({"FieldCanBeLocal", "unused"})
 @Slf4j
-public class BatchTaskManager implements ApplicationContextAware, InitializingBean {
+public class BatchTaskManager implements ApplicationContextAware, InitializingBean, DisposableBean {
 
     @Getter
     private final ExecutorConfig executorConfig;
@@ -63,6 +66,8 @@ public class BatchTaskManager implements ApplicationContextAware, InitializingBe
     private final AcquireTaskService acquireTaskService;
 
     private final BatchTaskHeartBeatReactor heartBeatReactor;
+
+    private final BatchTaskCancelReactor taskCancelReactor;
 
     @Resource
     @Getter
@@ -86,6 +91,7 @@ public class BatchTaskManager implements ApplicationContextAware, InitializingBe
         this.executorManager = new ExecutorManager(executorConfig);
         this.acquireTaskService = new AcquireTaskService(this);
         this.heartBeatReactor = new BatchTaskHeartBeatReactor(this);
+        this.taskCancelReactor = new BatchTaskCancelReactor(this);
         this.tablePrefix = "";
     }
 
@@ -97,6 +103,7 @@ public class BatchTaskManager implements ApplicationContextAware, InitializingBe
                         taskGroupConfig.setExecutorId(String.format("%s-%s", machineId.getId(), taskGroupConfig.getName())));
         this.acquireTaskService.init();
         this.heartBeatReactor.init();
+        this.taskCancelReactor.init();
     }
 
     public void atOnceExecute(String group) {
@@ -142,7 +149,7 @@ public class BatchTaskManager implements ApplicationContextAware, InitializingBe
     }
 
     public int releaseLockWhenHeartBeatExpireIn() {
-        long heartBeatCheckerTime = executorConfig.getHearBeatTimeMills() * executorConfig.getHearBeatTimeoutInterval();
+        long heartBeatCheckerTime = executorConfig.getHeartBeatIntervalMs() * executorConfig.getHearBeatTimeoutInterval();
         final LocalDateTime minHeartBeatTime = LocalDateTimeUtil.of(SystemClock.now() - heartBeatCheckerTime);
         return batchSubTaskMapper.releaseLockWhenHeartBeatExpireIn(minHeartBeatTime);
     }
@@ -161,7 +168,48 @@ public class BatchTaskManager implements ApplicationContextAware, InitializingBe
         init();
     }
 
+    @Override
+    public void destroy() throws Exception {
+        // TODO close()
+    }
 
+    public boolean interruptTask(Long batchTaskId) {
+        List<ExecStatus> expectStatuses = Lists.newArrayList(ExecStatus.FAILED, ExecStatus.PAIR, ExecStatus.RUNNING,
+                ExecStatus.INIT);
+        return batchTaskMapper.updateNextStatusWithStatuses(batchTaskId, ExecStatus.INTERRUPT, expectStatuses) > 0;
+    }
+
+    public boolean cancelTask(Long batchTaskId) {
+        List<ExecStatus> expectStatuses = Lists.newArrayList(ExecStatus.FAILED, ExecStatus.PAIR, ExecStatus.RUNNING,
+                ExecStatus.INIT);
+        return batchTaskMapper.updateNextStatusWithStatuses(batchTaskId, ExecStatus.CANCEL, expectStatuses) > 0;
+    }
+
+    public void doCancelTask() {
+        List<BatchTaskDO> cancelTasks = batchTaskMapper.selectListByNextStatus(ExecStatus.CANCEL);
+        for (BatchTaskDO cancelTask : cancelTasks) {
+            // 抢占批任务取消的资格
+            List<ExecStatus> expectStatuses = Lists.newArrayList(ExecStatus.FAILED, ExecStatus.PAIR, ExecStatus.RUNNING,
+                    ExecStatus.INIT);
+            int affectedRows = batchTaskMapper.updateStatusWithStatuses(cancelTask.getId(), ExecStatus.CANCEL, expectStatuses);
+            if (affectedRows >= 0) {
+                log.info("[cancel-task] batch task cancel successful [{}]-[{}]", cancelTask.getId(), cancelTask.getBatchNo());
+                expectStatuses = Lists.newArrayList(ExecStatus.FAILED, ExecStatus.INIT);
+                affectedRows = batchSubTaskMapper.updateStatusWithTaskIdAndStatuses(cancelTask.getId(), ExecStatus.CANCEL, expectStatuses);
+                log.info("[cancel-task] batch sub task cancel successful [{}]-[{}] affectedRows:{}", cancelTask.getId(), cancelTask.getBatchNo(), affectedRows);
+            }
+        }
+    }
+
+    public void doInterruptTask() {
+        List<BatchTaskDO> interruptTasks = batchTaskMapper.selectListByNextStatus(ExecStatus.INTERRUPT);
+        for (BatchTaskDO interruptTask : interruptTasks) {
+            RuntimeTaskUtil.interruptedTask(interruptTask.getId());
+        }
+    }
+
+
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     @RequiredArgsConstructor
     @Getter
     class TaskWorkRunnable implements Runnable {
@@ -177,6 +225,18 @@ public class BatchTaskManager implements ApplicationContextAware, InitializingBe
         @Override
         public void run() {
             executorId = taskGroupConfig.getExecutorId();
+            try {
+                run0();
+            } catch (InterruptedException e) {
+                // 清空中断位
+                Thread.interrupted();
+                log.error("[task-executor] interrupted successful [{}] [{}]", executorId, subTaskDO.getJobNo());
+                callback(new ExecResult<>(ExecStatus.INTERRUPT, null));
+            }
+        }
+
+        private void run0() throws InterruptedException {
+            executorId = taskGroupConfig.getExecutorId();
             maxFailureCnt = ObjectUtil.defaultIfNull(taskGroupConfig.getMaxFailureCount(), executorConfig.getMaxFailureCount());
             // real exec task
             // add table#sit_row && row-record add mutex lock
@@ -188,17 +248,25 @@ public class BatchTaskManager implements ApplicationContextAware, InitializingBe
                     log.info("[task-executor] [{}] add lock failed jobNo [{}] ", executorId, subTaskDO.getJobNo());
                     return;
                 }
+                RuntimeTaskUtil.registerJob(subTaskDO);
                 // 调用
                 log.info("[task-executor] [{}] add lock successful jobNo [{}] ", executorId, subTaskDO.getJobNo());
                 execResult = execute();
+            } catch (InterruptedException e) {
+                throw e;
             } catch (Exception e) {
                 execResult = ExecResult.error(ExecStatus.FAILED, e);
                 log.error("[task-executor] error [{}] details[{}]", executorId, JSONUtil.toJsonStr(subTaskDO), e);
             }
             try {
+                if (Thread.currentThread().isInterrupted()) {
+                    throw new InterruptedException();
+                }
                 // FIXME  可以尝试注册结果回调，链式执行
                 // You can try registering the result callback, chaining execution
                 callback(execResult);
+            } catch (InterruptedException e) {
+                throw e;
             } catch (Exception e) {
                 log.error("[task-executor] error [{}] jobNo:[{}] details[{}]", executorId, subTaskDO.getJobNo(), e);
             }
@@ -207,22 +275,37 @@ public class BatchTaskManager implements ApplicationContextAware, InitializingBe
         private void callback(ExecResult<?> execResult) {
             String jobNo = subTaskDO.getJobNo();
             Long batchJobId = subTaskDO.getBatchTaskId();
-            log.info("[task-executor] [{}] exec task end jobNo [{}] exec-status[{}] ", executorId, jobNo, execResult.status.getDesc());
+            log.info("[task-executor] [{}] exec task end jobNo [{}] exec-status[{}] ", executorId, jobNo, execResult.status);
             if (null != execResult.getThrowable()) {
                 subTaskDO.setFailureCnt(subTaskDO.getFailureCnt() + 1);
             }
             subTaskDO.setResult(JSONUtil.toJsonStr(execResult.getData()));
             subTaskDO.setExecStatus(subTaskDO.getFailureCnt() >= maxFailureCnt ? ExecStatus.ERROR : execResult.status);
-            // 任务锁释放
-            releaseLock();
-            log.info("[task-executor] [{}]-[{}] lock release", executorId, subTaskDO.getJobNo());
-            // 批任务尝试成功，根据已完成子任务列表
-            if (execResult.status == ExecStatus.SUCCESS) {
-                final int affectedRows = batchTaskMapper.updateSuccessWithCompletedSubTask(tablePrefix, batchJobId);
-                if (affectedRows > 0) {
-                    log.info("[task-executor] [{}]-[{}]-[{}] batch-task successful , change exec status ", executorId, jobNo, batchJobId);
+            // 任务锁释放：<CANCEL,INTERRUPTED,SUCCESS,FAILED,ERROR>
+            int affectedRows = releaseLock();
+            if (affectedRows <= 0) {
+                // ps: job 执行完成后，触发中断的情况， affectedRows=0
+                log.info("[task-executor] [{}]-[{}] release [{}] failed affectedRows is empty", executorId, execResult.status, subTaskDO.getJobNo());
+                RuntimeTaskUtil.unregisterJob(subTaskDO);
+            } else {
+                log.info("[task-executor] [{}]-[{}] release [{}] successful ", executorId, execResult.status, subTaskDO.getJobNo());
+                RuntimeTaskUtil.unregisterJob(subTaskDO);
+                // 批任务尝试成功，根据已完成子任务列表
+                if (execResult.status == ExecStatus.SUCCESS) {
+                    affectedRows = batchTaskMapper.updateSuccessWithCompletedSubTask(batchJobId);
+                    if (affectedRows > 0) {
+                        log.info("[task-executor] [{}]-[{}]-[{}] batch-task successful , change exec status ", executorId, jobNo, batchJobId);
+                    }
+                } else if (execResult.status == ExecStatus.INTERRUPT) {
+                    // 批任务尝试中断完成，（所有子任务是 中断，成功，异常状态时）-> 不可扭转的负向状态
+                    final ArrayList<ExecStatus> expectStatuses = Lists.newArrayList(ExecStatus.INTERRUPT, ExecStatus.SUCCESS, ExecStatus.ERROR);
+                    affectedRows = batchTaskMapper.updateStatusWithSubTaskExpectStatuses(batchJobId, execResult.status, expectStatuses);
+                    if (affectedRows > 0) {
+                        log.info("[task-executor] [{}]-[{}]-[{}] batch-task interrupted successful , change exec status ", executorId, jobNo, batchJobId);
+                    }
                 }
             }
+
         }
 
         @SuppressWarnings("unchecked")
@@ -241,11 +324,11 @@ public class BatchTaskManager implements ApplicationContextAware, InitializingBe
             return new ExecResult<>(ExecStatus.SUCCESS, result);
         }
 
-        private void releaseLock() {
-            batchSubTaskMapper.releaseLock(machineId.getId(), taskGroupConfig.getExecutorId(), subTaskDO);
+        private int releaseLock() {
+            return batchSubTaskMapper.releaseLock(machineId.getId(), taskGroupConfig.getExecutorId(), subTaskDO);
         }
 
-        private boolean acquireLock() {
+        private boolean acquireLock() throws InterruptedException {
             return batchSubTaskMapper.lockSubTask(machineId.getId(), taskGroupConfig.getExecutorId(), subTaskDO.getId()) > 0;
         }
 

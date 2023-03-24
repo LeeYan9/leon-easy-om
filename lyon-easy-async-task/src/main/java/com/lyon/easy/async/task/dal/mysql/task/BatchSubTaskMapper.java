@@ -157,4 +157,22 @@ public interface BatchSubTaskMapper extends BaseXMapper<SubTaskDO> {
         lambdaQuery.eq(SubTaskDO::getBatchTaskId, batchId);
         return selectList(lambdaQuery);
     }
+
+    /**
+     * 更新状态 根据批任务id，预期子任务状态列表
+     * @param id 批任务id
+     * @param execStatus 状态
+     * @param expectStatuses 预期状态列表
+     * @return 影响行数
+     */
+    default int updateStatusWithTaskIdAndStatuses(Long id, ExecStatus execStatus, List<ExecStatus> expectStatuses) {
+        final SubTaskDO updateDO = new SubTaskDO();
+        updateDO.setLockStatus(EnableEnum.NO.ordinal());
+        final LambdaUpdateWrapper<SubTaskDO> updateWrapper = Wrappers.lambdaUpdate(SubTaskDO.class);
+        updateWrapper
+                .eq(SubTaskDO::getBatchTaskId, id)
+                .in(SubTaskDO::getExecStatus, expectStatuses)
+                .set(SubTaskDO::getExecStatus, execStatus);
+        return update(updateDO, updateWrapper);
+    }
 }

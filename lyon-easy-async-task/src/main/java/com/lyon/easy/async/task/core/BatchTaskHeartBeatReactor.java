@@ -24,7 +24,7 @@ public class BatchTaskHeartBeatReactor {
     void init() {
         ThreadFactory threadFactory = ThreadFactoryBuilder.create().setDaemon(true).setNamePrefix("task-heartbeat-").build();
         this.heartbeatScheduleExecutor = new ScheduledThreadPoolExecutor(1, threadFactory);
-        this.heartbeatScheduleExecutor.schedule(new HeartBeatRunnable(), taskManager.getExecutorConfig().getHearBeatTimeMills(), TimeUnit.MILLISECONDS);
+        this.heartbeatScheduleExecutor.schedule(new HeartBeatRunnable(), taskManager.getExecutorConfig().getHeartBeatIntervalMs(), TimeUnit.MILLISECONDS);
     }
 
     class HeartBeatRunnable implements Runnable {

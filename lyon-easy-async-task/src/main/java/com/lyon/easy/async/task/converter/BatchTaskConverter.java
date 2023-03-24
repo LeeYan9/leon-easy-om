@@ -3,7 +3,9 @@ package com.lyon.easy.async.task.converter;
 import cn.hutool.core.lang.TypeReference;
 import cn.hutool.json.JSONUtil;
 import com.lyon.easy.async.task.dal.dataobject.task.BatchTaskDO;
+import com.lyon.easy.async.task.dal.dataobject.task.SubTaskDO;
 import com.lyon.easy.async.task.data.BatchTask;
+import com.lyon.easy.async.task.data.SubTask;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Mappings;
@@ -39,7 +41,9 @@ public interface BatchTaskConverter {
      * @return result
      */
     @Mappings({
-            @Mapping(source = "dependOns", target = "dependOns", qualifiedByName = "strToList")
+            @Mapping(source = "dependOns", target = "dependOns", qualifiedByName = "strToList"),
+            @Mapping(target = "execRecord", source = "batchTaskDO", qualifiedByName = "batchTaskDO_to_record")
+
     })
     BatchTask to(BatchTaskDO batchTaskDO);
 
@@ -55,5 +59,9 @@ public interface BatchTaskConverter {
         }.getType();
         return JSONUtil.toBean(str, type, true);
     }
+
+
+    @Named("batchTaskDO_to_record")
+    BatchTask.ExecRecord toExecRecord(BatchTaskDO subTaskDO);
 
 }

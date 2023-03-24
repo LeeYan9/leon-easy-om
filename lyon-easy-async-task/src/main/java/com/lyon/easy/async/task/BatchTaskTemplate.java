@@ -17,6 +17,20 @@ public interface BatchTaskTemplate {
     void submitTask(BatchTask batchTask);
 
     /**
+     * 取消任务，正在执行的任务不会取消
+     * @param batchTaskId 批任务id
+     * @return 是否可以取消，取消是异步操作
+     */
+    boolean cancelTask(Long batchTaskId);
+
+    /**
+     * 中断任务，正在执行的任务也会取消
+     * @param batchTaskId 批任务id
+     * @return 是否可以中断，中断是异步操作
+     */
+    boolean interruptTask(Long batchTaskId);
+
+    /**
      * 批任务状态信息
      * @param batchNo 批次号
      * @return 结果
