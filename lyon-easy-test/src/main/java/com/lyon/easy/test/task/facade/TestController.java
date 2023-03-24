@@ -8,7 +8,6 @@ import com.lyon.easy.async.task.data.SubTask;
 import com.lyon.easy.async.task.enums.IdcEnum;
 import com.lyon.easy.async.task.protocol.task.TaskProtocols;
 import com.lyon.easy.common.base.R;
-import org.springframework.core.env.Environment;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -82,7 +81,7 @@ public class TestController {
                     final SubTask subTask = new SubTask();
                     subTask.setGroupName(batchTask.getGroupName());
 //                    subTask.setTaskAddress(TaskProtocols.getTaskAddress(TaskProtocols.PROTOCOL, "simpleTaskHandler"));
-                    subTask.setTaskAddress(TaskProtocols.getTaskAddress(TaskProtocols.PROTOCOL,beanName));
+                    subTask.setTaskAddress(TaskProtocols.getTaskAddress(TaskProtocols.BEAN,beanName));
                     subTask.setJobNo(RandomUtil.randomStringUpper(5));
                     subTask.setParam(String.format("{\"slice\":%s}", cnt));
                     return subTask;

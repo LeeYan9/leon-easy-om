@@ -17,7 +17,7 @@ import java.util.Map;
 /**
  * @author Lyon
  */
-@SuppressWarnings({"NullableProblems", "rawtypes"})
+@SuppressWarnings({"NullableProblems", "rawtypes", "unchecked"})
 public class BeanNameTaskHandlerProtocol implements TaskHandlerProtocol, TaskHandlerRegister, BeanDefinitionRegistryPostProcessor, Ordered, ApplicationContextAware {
 
     private final Map<String, BatchTaskHandler> taskHandlerMap = new HashMap<>();
@@ -30,24 +30,24 @@ public class BeanNameTaskHandlerProtocol implements TaskHandlerProtocol, TaskHan
     }
 
     @Override
-    public void register(BatchTaskHandler batchTaskHandler) {
+    public <T> void register(BatchTaskHandler<T> batchTaskHandler) {
         taskHandlerMap.put(batchTaskHandler.getClass().getCanonicalName(), batchTaskHandler);
     }
 
     @Override
-    public BatchTaskHandler getHandler(String taskAddress) {
-        BatchTaskHandler batchTaskHandler = null;
+    public <T> BatchTaskHandler<T> getHandler(String taskAddress) {
+        BatchTaskHandler<T> batchTaskHandler = null;
         if (support(taskAddress)) {
-            final String beanName = StrUtil.removePrefix(taskAddress, TaskProtocols.PROTOCOL);
+            final String beanName = StrUtil.removePrefix(taskAddress, TaskProtocols.BEAN);
             batchTaskHandler = taskHandlerMap.get(beanName);
         }
-        Assert.notNull(batchTaskHandler);
+        Assert.notNull(batchTaskHandler, String.format("task handler [%s] not found", taskAddress));
         return batchTaskHandler;
     }
 
     @Override
     public boolean support(String taskAddress) {
-        return StrUtil.startWith(taskAddress, TaskProtocols.PROTOCOL);
+        return StrUtil.startWith(taskAddress, TaskProtocols.BEAN);
     }
 
     @Override

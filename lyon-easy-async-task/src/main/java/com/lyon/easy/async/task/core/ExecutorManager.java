@@ -23,7 +23,7 @@ public class ExecutorManager {
             String key = taskGroupConfig.getName();
             final ThreadFactory threadFactory = ThreadFactoryBuilder
                     .create()
-                    .setNamePrefix(String.format("async-task-executor-%s-", taskGroupConfig.getName())).build();
+                    .setNamePrefix(String.format("[async-task-executor-%s]-", taskGroupConfig.getName())).build();
             final ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(taskGroupConfig.getExecCoreSize(), taskGroupConfig.getExecMaxSize(),
                     1, TimeUnit.MINUTES, new SynchronousQueue<>(), threadFactory);
             threadPoolExecutor.allowCoreThreadTimeOut(true);

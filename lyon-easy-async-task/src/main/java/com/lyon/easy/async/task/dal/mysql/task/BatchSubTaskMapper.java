@@ -10,7 +10,6 @@ import com.lyon.easy.async.task.enums.EnableEnum;
 import com.lyon.easy.async.task.enums.ExecStatus;
 import com.lyon.easy.async.task.enums.IdcEnum;
 import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,23 +27,21 @@ public interface BatchSubTaskMapper extends BaseXMapper<SubTaskDO> {
      * @param clientId 机器id
      * @param owner    持有者
      * @param id       id
-     * @param expireAt 锁过期时间
      * @return 影响行数
      */
     default int lockSubTask(String clientId,
                             String owner,
-                            Long id,
-                            LocalDateTime expireAt) {
+                            Long id) {
         final SubTaskDO updateEntity = new SubTaskDO();
         updateEntity.setOwner(owner);
         updateEntity.setClientId(clientId);
         updateEntity.setLockStatus(EnableEnum.YES.ordinal());
-        updateEntity.setLockExpireAt(expireAt);
+        updateEntity.setLastHeartbeatTime(LocalDateTime.now());
         final LambdaUpdateWrapper<SubTaskDO> updateWrapper = Wrappers.lambdaUpdate(SubTaskDO.class);
         updateWrapper
                 .eq(SubTaskDO::getId, id)
                 .eq(SubTaskDO::getLockStatus, EnableEnum.NO.ordinal())
-                .notIn(SubTaskDO::getExecStatus, ExecStatus.RUN_STATUES);
+                .in(SubTaskDO::getExecStatus, ExecStatus.LOCKABLE_STATUES);
 
         return update(updateEntity, updateWrapper);
     }
@@ -52,29 +49,25 @@ public interface BatchSubTaskMapper extends BaseXMapper<SubTaskDO> {
     /**
      * 锁释放
      *
-     * @param clientId   机器id
-     * @param owner      持有者
-     * @param id         id
-     * @param execStatus 执行状态
-     * @param execResult 执行结果
+     * @param clientId  机器id
+     * @param owner     持有者
+     * @param subTaskDO 任务
      * @return 影响行数
      */
     default int releaseLock(String clientId,
                             String owner,
-                            Long id,
-                            ExecStatus execStatus,
-                            String execResult) {
+                            SubTaskDO subTaskDO) {
         final LambdaUpdateWrapper<SubTaskDO> wrapper = Wrappers.lambdaUpdate(SubTaskDO.class);
-        final String str = StrUtil.sub(execResult, 0, 1000);
-        wrapper.eq(SubTaskDO::getId, id)
+        final String str = StrUtil.sub(subTaskDO.getResult(), 0, 1000);
+        wrapper.eq(SubTaskDO::getId, subTaskDO.getId())
                 .eq(SubTaskDO::getClientId, clientId)
                 .eq(SubTaskDO::getOwner, owner)
-                .set(SubTaskDO::getOwner, null)
-                .set(SubTaskDO::getClientId, null)
-                .set(SubTaskDO::getLockExpireAt, null)
+                .set(SubTaskDO::getLastHeartbeatTime, null)
                 .set(SubTaskDO::getResult, str);
         final SubTaskDO updateEntity = new SubTaskDO();
-        updateEntity.setExecStatus(execStatus);
+        updateEntity.setLockStatus(EnableEnum.NO.ordinal());
+        updateEntity.setFailureCnt(subTaskDO.getFailureCnt());
+        updateEntity.setExecStatus(subTaskDO.getExecStatus());
         return update(updateEntity, wrapper);
     }
 
@@ -94,7 +87,7 @@ public interface BatchSubTaskMapper extends BaseXMapper<SubTaskDO> {
         //noinspection CodeBlock2Expr
         queryWrapper
                 .eq(SubTaskDO::getLockStatus, EnableEnum.NO.ordinal())
-                .notIn(SubTaskDO::getExecStatus, ExecStatus.RUN_STATUES)
+                .in(SubTaskDO::getExecStatus, ExecStatus.LOCKABLE_STATUES)
                 .and(wrapper -> {
                     wrapper
                             .or().eq(SubTaskDO::getIdc, idc)
@@ -108,16 +101,18 @@ public interface BatchSubTaskMapper extends BaseXMapper<SubTaskDO> {
     /**
      * 释放锁，如果心跳过期
      *
+     * @param minHeartbeatTime minHeartbeatTime
      * @return 影响行数
      */
-    default int releaseLockWhenHeartBeatExpireIn() {
+    default int releaseLockWhenHeartBeatExpireIn(LocalDateTime minHeartbeatTime) {
         final SubTaskDO updateDO = new SubTaskDO();
         updateDO.setLockStatus(EnableEnum.NO.ordinal());
         final LambdaUpdateWrapper<SubTaskDO> updateWrapper = Wrappers.lambdaUpdate(SubTaskDO.class);
         updateWrapper
-                .apply(" lock_expire_in < now()")
-                .isNotNull(SubTaskDO::getLockStatus)
-                .set(SubTaskDO::getLockExpireAt, null)
+                .eq(SubTaskDO::getLockStatus, EnableEnum.YES.ordinal())
+                .in(SubTaskDO::getExecStatus, ExecStatus.RELEASABLE_STATUES)
+                .lt(SubTaskDO::getLastHeartbeatTime, minHeartbeatTime)
+                .set(SubTaskDO::getLastHeartbeatTime, null)
                 .set(SubTaskDO::getOwner, null)
                 .set(SubTaskDO::getClientId, null);
         return update(updateDO, updateWrapper);
@@ -127,14 +122,11 @@ public interface BatchSubTaskMapper extends BaseXMapper<SubTaskDO> {
      * 心跳续期
      *
      * @param machineId 机器id
-     * @param expireAt  过期时间
      * @return 影响行数
      */
-    default int renewHeartbeat(String machineId,
-                               LocalDateTime expireAt) {
+    default int renewHeartbeat(String machineId) {
         final SubTaskDO updateDO = new SubTaskDO();
-        updateDO.setLockExpireAt(expireAt);
-        updateDO.setLockStatus(EnableEnum.NO.ordinal());
+        updateDO.setLastHeartbeatTime(LocalDateTime.now());
         final LambdaUpdateWrapper<SubTaskDO> updateWrapper = Wrappers.lambdaUpdate(SubTaskDO.class);
         updateWrapper
                 .eq(SubTaskDO::getLockStatus, EnableEnum.YES.ordinal())

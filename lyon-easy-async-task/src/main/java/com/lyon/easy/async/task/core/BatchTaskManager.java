@@ -1,5 +1,8 @@
 package com.lyon.easy.async.task.core;
 
+import cn.hutool.core.date.LocalDateTimeUtil;
+import cn.hutool.core.date.SystemClock;
+import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.json.JSONUtil;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
@@ -20,7 +23,9 @@ import com.lyon.easy.async.task.factory.TaskHandlerFactory;
 import com.lyon.easy.async.task.handler.BatchTaskHandler;
 import com.lyon.easy.async.task.util.ParamsCheckerUtil;
 import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.InitializingBean;
@@ -30,7 +35,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -90,7 +94,7 @@ public class BatchTaskManager implements ApplicationContextAware, InitializingBe
         this.executorConfig
                 .getTaskGroupConfigs()
                 .forEach(taskGroupConfig ->
-                        taskGroupConfig.setExecutorId(String.format("%s-%s-%s", machineId.getId(), taskGroupConfig.getName(), taskGroupConfig.getGroups())));
+                        taskGroupConfig.setExecutorId(String.format("%s-%s", machineId.getId(), taskGroupConfig.getName())));
         this.acquireTaskService.init();
         this.heartBeatReactor.init();
     }
@@ -118,7 +122,6 @@ public class BatchTaskManager implements ApplicationContextAware, InitializingBe
         final List<SubTaskDO> listAll = Lists.newArrayList();
         batchTask.getSubTasks().forEach(subTask -> listAll.addAll(generateSubTaskDOList(batchTaskDO, subTask)));
         listAll.forEach(subTask -> batchSubTaskMapper.insert(subTask));
-//        batchSubTaskMapper.insertBatchSomeColumn(listAll); 导致字段默认值失效
     }
 
     private List<SubTaskDO> generateSubTaskDOList(BatchTaskDO batchTaskDO, SubTask subTask) {
@@ -138,13 +141,14 @@ public class BatchTaskManager implements ApplicationContextAware, InitializingBe
         executorManager.getExecutor(taskGroupConfig.getName()).submit(worker);
     }
 
-    public void releaseLockWhenHeartBeatExpireIn() {
-        batchSubTaskMapper.releaseLockWhenHeartBeatExpireIn();
+    public int releaseLockWhenHeartBeatExpireIn() {
+        long heartBeatCheckerTime = executorConfig.getHearBeatTimeMills() * executorConfig.getHearBeatTimeoutInterval();
+        final LocalDateTime minHeartBeatTime = LocalDateTimeUtil.of(SystemClock.now() - heartBeatCheckerTime);
+        return batchSubTaskMapper.releaseLockWhenHeartBeatExpireIn(minHeartBeatTime);
     }
 
-    public void renewHeartbeat() {
-        final LocalDateTime nextExpireInTime = LocalDateTime.now().plus(executorConfig.getHearBeatTimeMills(), ChronoUnit.MILLIS);
-        batchSubTaskMapper.renewHeartbeat(machineId.getId(), nextExpireInTime);
+    public int renewHeartbeat() {
+        return batchSubTaskMapper.renewHeartbeat(machineId.getId());
     }
 
     @Override
@@ -158,7 +162,7 @@ public class BatchTaskManager implements ApplicationContextAware, InitializingBe
     }
 
 
-    @AllArgsConstructor
+    @RequiredArgsConstructor
     @Getter
     class TaskWorkRunnable implements Runnable {
 
@@ -166,65 +170,106 @@ public class BatchTaskManager implements ApplicationContextAware, InitializingBe
 
         private final SubTaskDO subTaskDO;
 
+        private int maxFailureCnt;
+
+        private String executorId;
+
         @Override
         public void run() {
+            executorId = taskGroupConfig.getExecutorId();
+            maxFailureCnt = ObjectUtil.defaultIfNull(taskGroupConfig.getMaxFailureCount(), executorConfig.getMaxFailureCount());
             // real exec task
             // add table#sit_row && row-record add mutex lock
-            ExecStatus execStatus = ExecStatus.FAILED;
-            String execResult = null;
+            ExecResult<?> execResult;
             try {
-                log.info("[task-executor] [{}] ready add lock and exec sub-task jobNo [{}] "
-                        , taskGroupConfig.getExecutorId(), subTaskDO.getJobNo());
+                log.info("[task-executor] [{}] add lock jobNo [{}] ", executorId, subTaskDO.getJobNo());
                 // 加锁
-                if (!tryLockTask()) {
-                    log.info("[task-executor] [{}] add lock failed sub-task jobNo [{}] ", taskGroupConfig.getExecutorId(), subTaskDO.getJobNo());
+                if (!acquireLock()) {
+                    log.info("[task-executor] [{}] add lock failed jobNo [{}] ", executorId, subTaskDO.getJobNo());
                     return;
                 }
-                log.info("[task-executor] [{}] add lock successful sub-task jobNo [{}] "
-                        , taskGroupConfig.getExecutorId(), subTaskDO.getJobNo());
-                // 检查上下游依赖 TODO
-                // 确认子任务需求
-                final String taskAddress = subTaskDO.getTaskAddress();
-                // 执行子任务
-                final BatchTaskHandler<?> handler = taskHandlerFactory.getNonNullHandler(taskAddress);
-                final Stopwatch stopwatch = Stopwatch.createStarted();
-                log.info("[task-executor] [{}] ready exec sub-task jobNo [{}]-[{}] ", taskGroupConfig.getExecutorId(), subTaskDO.getJobNo(), taskAddress);
-                final Object result = handler.execute(subTaskDO.getParam());
-                execResult = JSONUtil.toJsonStr(result);
-                // 变更批任务、子任务 结果
-                execStatus = ExecStatus.SUCCESS;
-                stopwatch.stop();
-                log.info("[task-executor] [{}] exec sub-task end jobNo [{}]-[{}]-[{}]", taskGroupConfig.getExecutorId(),
-                        subTaskDO.getJobNo(), taskAddress, stopwatch.elapsed(TimeUnit.MILLISECONDS));
-                releaseLock(execStatus,execResult);
+                // 调用
+                log.info("[task-executor] [{}] add lock successful jobNo [{}] ", executorId, subTaskDO.getJobNo());
+                execResult = execute();
             } catch (Exception e) {
-                // add lock failed
-                log.error("[task-executor] error sub-task-id[{}] details[{}]", subTaskDO.getId(), JSONUtil.toJsonStr(subTaskDO), e);
-                e.printStackTrace();
-            } finally {
-                log.info("[task-executor] [{}] exec end sub-task start jobNo [{}] exec-status[{}] "
-                        , taskGroupConfig.getExecutorId(), subTaskDO.getJobNo(), execStatus.getDesc());
-                // 解锁
-                releaseLock(execStatus, execResult);
-                log.info("[task-executor] [{}]-[{}] lock release", taskGroupConfig.getExecutorId(), subTaskDO.getJobNo());
+                execResult = ExecResult.error(ExecStatus.FAILED, e);
+                log.error("[task-executor] error [{}] details[{}]", executorId, JSONUtil.toJsonStr(subTaskDO), e);
             }
+            try {
+                // FIXME  可以尝试注册结果回调，链式执行
+                // You can try registering the result callback, chaining execution
+                callback(execResult);
+            } catch (Exception e) {
+                log.error("[task-executor] error [{}] jobNo:[{}] details[{}]", executorId, subTaskDO.getJobNo(), e);
+            }
+        }
+
+        private void callback(ExecResult<?> execResult) {
+            String jobNo = subTaskDO.getJobNo();
+            Long batchJobId = subTaskDO.getBatchTaskId();
+            log.info("[task-executor] [{}] exec task end jobNo [{}] exec-status[{}] ", executorId, jobNo, execResult.status.getDesc());
+            if (null != execResult.getThrowable()) {
+                subTaskDO.setFailureCnt(subTaskDO.getFailureCnt() + 1);
+            }
+            subTaskDO.setResult(JSONUtil.toJsonStr(execResult.getData()));
+            subTaskDO.setExecStatus(subTaskDO.getFailureCnt() >= maxFailureCnt ? ExecStatus.ERROR : execResult.status);
+            // 任务锁释放
+            releaseLock();
+            log.info("[task-executor] [{}]-[{}] lock release", executorId, subTaskDO.getJobNo());
             // 批任务尝试成功，根据已完成子任务列表
-            final int affectedRows = batchTaskMapper.updateSuccessWithCompletedSubTask(tablePrefix, subTaskDO.getBatchTaskId());
-            if (affectedRows > 0) {
-                log.info("[task-executor] [{}]-[{}]-[{}] batch-task exec successful , change exec status ", taskGroupConfig.getExecutorId(), subTaskDO.getJobNo(), subTaskDO.getBatchTaskId());
+            if (execResult.status == ExecStatus.SUCCESS) {
+                final int affectedRows = batchTaskMapper.updateSuccessWithCompletedSubTask(tablePrefix, batchJobId);
+                if (affectedRows > 0) {
+                    log.info("[task-executor] [{}]-[{}]-[{}] batch-task successful , change exec status ", executorId, jobNo, batchJobId);
+                }
             }
         }
 
-        private void releaseLock(ExecStatus execStatus, String execResult) {
-            batchSubTaskMapper.releaseLock(machineId.getId(), taskGroupConfig.getExecutorId(), subTaskDO.getId(), execStatus,execResult);
+        @SuppressWarnings("unchecked")
+        private <T> ExecResult<T> execute() {
+            final Stopwatch stopwatch = Stopwatch.createStarted();
+            // TODO 检查上下游依赖
+            checkDependOns();
+            // 获取任务
+            final BatchTaskHandler<?> handler = taskHandlerFactory.getNonNullHandler(subTaskDO.getTaskAddress());
+            log.info("[task-executor] [{}] exec task jobNo [{}]-[{}] ", taskGroupConfig.getExecutorId(), subTaskDO.getJobNo(), subTaskDO.getTaskAddress());
+            // 执行任务
+            final T result = (T) handler.execute(subTaskDO.getParam());
+            // 日志打印、结果集返回
+            log.info("[task-executor] [{}] exec task end jobNo [{}]-[{}]-[{}]", taskGroupConfig.getExecutorId(),
+                    subTaskDO.getJobNo(), subTaskDO.getTaskAddress(), stopwatch.stop().elapsed(TimeUnit.MILLISECONDS));
+            return new ExecResult<>(ExecStatus.SUCCESS, result);
         }
 
-        private boolean tryLockTask() {
-            // calculate lock expireAt time
-            final long heartBeatCheckerTime = executorConfig.getHearBeatTimeMills() * executorConfig.getHearBeatTimeoutInterval();
-            LocalDateTime expireIn = LocalDateTime.now().plus(heartBeatCheckerTime, ChronoUnit.MILLIS);
-            return batchSubTaskMapper.lockSubTask(machineId.getId(), taskGroupConfig.getExecutorId(), subTaskDO.getId(), expireIn) > 0;
+        private void releaseLock() {
+            batchSubTaskMapper.releaseLock(machineId.getId(), taskGroupConfig.getExecutorId(), subTaskDO);
+        }
+
+        private boolean acquireLock() {
+            return batchSubTaskMapper.lockSubTask(machineId.getId(), taskGroupConfig.getExecutorId(), subTaskDO.getId()) > 0;
+        }
+
+        private void checkDependOns() {
+
         }
     }
+
+    @Data
+    @AllArgsConstructor
+    static class ExecResult<T> {
+        private ExecStatus status;
+        private Throwable throwable;
+        private T data;
+
+        public ExecResult(ExecStatus status, T data) {
+            this.status = status;
+            this.data = data;
+        }
+
+        public static ExecResult<?> error(ExecStatus execStatus, Throwable throwable) {
+            return new ExecResult<>(execStatus, throwable, null);
+        }
+    }
+
 
 }

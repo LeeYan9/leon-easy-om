@@ -15,6 +15,7 @@ import com.lyon.easy.async.task.protocol.idc.IdcProtocol;
 import com.lyon.easy.async.task.protocol.idc.PrefixMatchingIdcProtocol;
 import com.lyon.easy.async.task.protocol.task.BeanNameTaskHandlerProtocol;
 import com.lyon.easy.async.task.protocol.task.TaskHandlerProtocol;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -31,7 +32,7 @@ import java.util.List;
 @EnableConfigurationProperties({IdcProperties.class})
 @Import(BeanNameTaskHandlerProtocol.class)
 @AutoConfigureAfter(MybatisPlusAutoConfiguration.class)
-public class AsyncBatchTaskAutoConfigure {
+public class AsyncBatchTaskAutoConfigure implements InitializingBean {
 
 
     @ConditionalOnMissingBean
@@ -67,5 +68,11 @@ public class AsyncBatchTaskAutoConfigure {
     @Bean
     public BatchTaskTemplate batchTaskTemplate() {
         return new DefaultBatchTaskTemplate();
+    }
+
+    @Override
+    public void afterPropertiesSet() {
+        // do something
+        // For example , modify the #init() call timings of TaskHandler
     }
 }

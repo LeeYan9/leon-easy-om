@@ -13,6 +13,6 @@ public interface TaskHandlerRegister {
      *
      * @param batchTaskHandler 任务处理器
      */
-    void register(BatchTaskHandler<?> batchTaskHandler);
+    <T> void register(BatchTaskHandler<T> batchTaskHandler);
 
 }

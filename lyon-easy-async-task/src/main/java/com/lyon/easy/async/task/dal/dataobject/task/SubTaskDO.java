@@ -64,7 +64,6 @@ public class SubTaskDO extends BaseDO {
     /**
      * InEnumTypeHandler
      */
-//    @TableField(typeHandler = EnumTypeHandler.class)
 //    @TableField(value = "exec_status",typeHandler = InEnumTypeHandler.class)
     private ExecStatus execStatus;
 
@@ -84,9 +83,14 @@ public class SubTaskDO extends BaseDO {
     private Integer lockStatus;
 
     /**
-     * 锁失效时间
+     * 最后一次心跳时间
      */
-    private LocalDateTime lockExpireAt;
+    private LocalDateTime lastHeartbeatTime;
+
+    /**
+     * 任务失效次数>={{maxFailureCount}} 时，不再继续处理当前任务
+     */
+    private Integer failureCnt;
 
     /**
      * 执行结果

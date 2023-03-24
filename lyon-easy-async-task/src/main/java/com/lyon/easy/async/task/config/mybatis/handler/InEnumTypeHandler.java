@@ -4,7 +4,6 @@ import cn.hutool.core.util.ReflectUtil;
 import com.lyon.easy.async.task.annotation.EnumValue;
 import com.lyon.easy.common.utils.CollUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
-import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.EnumTypeHandler;
 import org.apache.ibatis.type.JdbcType;
 
@@ -17,6 +16,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
+ * 暂未使用，可覆盖 原始org.apache.ibatis.type.EnumTypeHandler.class
  * @author Lyon
  */
 public class InEnumTypeHandler<E extends Enum<E>> extends EnumTypeHandler<E> {
@@ -31,7 +31,6 @@ public class InEnumTypeHandler<E extends Enum<E>> extends EnumTypeHandler<E> {
         }
         this.type = type;
     }
-    // todo reflect  optimization need
 
     @Override
     public void setNonNullParameter(PreparedStatement ps, int i, E parameter, JdbcType jdbcType) throws SQLException {
@@ -66,8 +65,7 @@ public class InEnumTypeHandler<E extends Enum<E>> extends EnumTypeHandler<E> {
         if (Objects.isNull(parameter)) {
             return defaultValue;
         }
-        final List<Field> fields = FieldUtils.getFieldsListWithAnnotation(type, EnumValue.class);
-        Field enumValueField = CollUtils.isEmpty(fields) ? null : fields.get(0);
+        Field enumValueField = getFieldWithAnnotationEnumValue();
         if (Objects.isNull(enumValueField)) {
             return defaultValue;
         }
@@ -75,12 +73,16 @@ public class InEnumTypeHandler<E extends Enum<E>> extends EnumTypeHandler<E> {
         return Objects.isNull(enumValue) ? defaultValue : enumValue;
     }
 
+    private Field getFieldWithAnnotationEnumValue() {
+        final List<Field> fields = FieldUtils.getFieldsListWithAnnotation(type, EnumValue.class);
+        return CollUtils.isEmpty(fields) ? null : fields.get(0);
+    }
+
     private E tryGetEnumOrDefault(String s, E defaultValue) {
         if (Objects.isNull(s)) {
             return defaultValue;
         }
-        final List<Field> fields = FieldUtils.getFieldsListWithAnnotation(type, EnumValue.class);
-        Field enumValueField = CollUtils.isEmpty(fields) ? null : fields.get(0);
+        Field enumValueField = getFieldWithAnnotationEnumValue();
         if (Objects.isNull(enumValueField)) {
             return defaultValue;
         }
