@@ -9,7 +9,6 @@ import com.lyon.easy.async.task.dal.mysql.task.BatchSubTaskMapper;
 import com.lyon.easy.async.task.dal.mysql.task.BatchTaskMapper;
 import com.lyon.easy.async.task.data.*;
 import com.lyon.easy.common.utils.CollUtils;
-import lombok.AllArgsConstructor;
 
 import javax.annotation.Resource;
 import java.util.List;
@@ -21,20 +20,16 @@ import java.util.Objects;
  * @author lyon
  */
 @SuppressWarnings("unused")
-@AllArgsConstructor
 public class DefaultBatchTaskTemplate implements BatchTaskTemplate {
 
-    private final BatchTaskManager batchTaskManager;
+    @Resource
+    private BatchTaskManager batchTaskManager;
 
     @Resource
     private BatchTaskMapper batchTaskMapper;
 
     @Resource
     private BatchSubTaskMapper batchSubTaskMapper;
-
-    public DefaultBatchTaskTemplate(BatchTaskManager batchTaskManager) {
-        this.batchTaskManager = batchTaskManager;
-    }
 
     @Override
     public void submitTask(BatchTask batchTask) {
