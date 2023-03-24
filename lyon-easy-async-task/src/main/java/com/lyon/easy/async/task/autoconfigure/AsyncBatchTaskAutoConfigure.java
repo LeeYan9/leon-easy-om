@@ -7,6 +7,8 @@ import com.lyon.easy.async.task.config.ExecutorConfig;
 import com.lyon.easy.async.task.config.idc.IdcProperties;
 import com.lyon.easy.async.task.core.BatchTaskManager;
 import com.lyon.easy.async.task.core.idc.IdcContainer;
+import com.lyon.easy.async.task.dal.mysql.task.BatchSubTaskMapper;
+import com.lyon.easy.async.task.dal.mysql.task.BatchTaskMapper;
 import com.lyon.easy.async.task.factory.DefaultTaskHandlerFactory;
 import com.lyon.easy.async.task.factory.TaskHandlerFactory;
 import com.lyon.easy.async.task.protocol.idc.IdcProtocol;
@@ -63,7 +65,7 @@ public class AsyncBatchTaskAutoConfigure {
 
     @ConditionalOnMissingBean
     @Bean
-    public BatchTaskTemplate batchTaskTemplate(BatchTaskManager batchTaskManager) {
-        return new DefaultBatchTaskTemplate(batchTaskManager);
+    public BatchTaskTemplate batchTaskTemplate() {
+        return new DefaultBatchTaskTemplate();
     }
 }
