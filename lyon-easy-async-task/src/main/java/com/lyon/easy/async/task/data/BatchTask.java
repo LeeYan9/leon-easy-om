@@ -1,11 +1,13 @@
 package com.lyon.easy.async.task.data;
 
+import com.lyon.easy.async.task.enums.ExecStatus;
 import com.lyon.easy.async.task.enums.IdcEnum;
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -53,6 +55,8 @@ public class BatchTask {
     @NotNull(message = "任务消费机房类型不能为空")
     private IdcEnum idcType;
 
+    private ExecRecord execRecord;
+
     /**
      * 消费机房标识
      *
@@ -64,6 +68,22 @@ public class BatchTask {
 
     @NotEmpty(message = "任务明细列表不能为空")
     private List<SubTask> subTasks;
+
+    @Data
+    public static class ExecRecord {
+
+        private Long id;
+
+        /**
+         * 执行状态
+         */
+        private ExecStatus execStatus;
+
+        /**
+         * 批任务等待执行的状态：execStatus=INIT,nextStatus=CANCEL,在批任务到下个CANCEL状态时，过渡的状态,一定会到CANCEL
+         */
+        private ExecStatus nextStatus;
+    }
 
 
 }

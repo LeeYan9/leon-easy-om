@@ -60,7 +60,7 @@ public interface SubTaskConverter {
 //            @Mapping(target = "record.owner", source = "owner"),
 //            @Mapping(target = "record.clientId", source = "clientId"),
 //            @Mapping(target = "record.lockStatus", source = "lockStatus"),
-            @Mapping(target = "record", source = "subTaskDO", qualifiedByName = "subTaskDO_to_record")
+            @Mapping(target = "execRecord", source = "subTaskDO", qualifiedByName = "subTaskDO_to_record")
     })
     SubTask to(SubTaskDO subTaskDO);
 

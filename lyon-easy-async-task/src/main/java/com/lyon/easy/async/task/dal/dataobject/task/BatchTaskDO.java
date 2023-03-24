@@ -62,8 +62,13 @@ public class BatchTaskDO extends BaseDO {
      * 执行状态
      */
 //    @TableField(value = "exec_status",typeHandler = MybatisEnumTypeHandler.class)
-
     private ExecStatus execStatus;
+
+    /**
+     * 批任务等待执行的状态：execStatus=INIT,nextStatus=CANCEL,在批任务到下个CANCEL状态时，过渡的状态,一定会到CANCEL
+     */
+//    @TableField(value = "exec_status",typeHandler = MybatisEnumTypeHandler.class)
+    private ExecStatus nextStatus;
 
     /**
      * 消费机房标识

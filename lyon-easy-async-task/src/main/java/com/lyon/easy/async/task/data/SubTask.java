@@ -37,7 +37,7 @@ public class SubTask {
     @NotBlank(message = "任务地址")
     private String taskAddress;
 
-    private ExecRecord record;
+    private ExecRecord execRecord;
 
     @SuppressWarnings("unused")
     @Data

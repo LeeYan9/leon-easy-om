@@ -18,9 +18,20 @@ public class ExecutorConfig {
 
     private List<@Valid TaskGroupConfig> taskGroupConfigs = new ArrayList<>();
 
-    private long hearBeatTimeMills = 1000 * 60 * 5;
+    /**
+     * 心跳间隔时间
+     */
+    private long heartBeatIntervalMs = 1000 * 60 * 5;
 
-    private long hearBeatTimeoutInterval = 6;
+    /**
+     * 任务取消感应周期时间
+     */
+    private long taskCancelTimeMills = 1000 * 60 * 2;
+
+    /**
+     * 最大心跳间隔次数
+     */
+    private long hearBeatTimeoutInterval = 5;
 
     /**
      * 通用缺省值：最大故障次数，任务失效次数>={{maxFailureCount}} 时，不再继续处理当前任务

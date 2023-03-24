@@ -37,6 +37,16 @@ public class DefaultBatchTaskTemplate implements BatchTaskTemplate {
     }
 
     @Override
+    public boolean cancelTask(Long batchTaskId) {
+        return batchTaskManager.cancelTask(batchTaskId);
+    }
+
+    @Override
+    public boolean interruptTask(Long batchTaskId) {
+        return batchTaskManager.interruptTask(batchTaskId);
+    }
+
+    @Override
     public BatchTaskState getBatchTaskState(String batchNo) {
         BatchTaskDO batchTaskDO = batchTaskMapper.selectByBatchNo(batchNo);
         if (Objects.isNull(batchTaskDO)) {

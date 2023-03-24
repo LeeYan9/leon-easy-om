@@ -1,10 +1,17 @@
 package com.lyon.easy.async.task.enums;
 
+import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.google.common.collect.Lists;
 import com.lyon.easy.async.task.annotation.EnumValue;
+import com.lyon.easy.async.task.dal.dataobject.task.BatchTaskDO;
+import com.lyon.easy.common.utils.CollUtils;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
