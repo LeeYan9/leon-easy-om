@@ -13,7 +13,7 @@ public interface TaskHandlerProtocol {
      * @param taskAddress 任务地址
      * @return 批任务标识
      */
-    BatchTaskHandler getHandler(String taskAddress);
+    <T> BatchTaskHandler<T> getHandler(String taskAddress);
 
     /**
      * 协议支持判断

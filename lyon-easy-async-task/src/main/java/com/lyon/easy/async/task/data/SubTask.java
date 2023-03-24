@@ -40,6 +40,7 @@ public class SubTask {
     private ExecRecord record;
 
     @SuppressWarnings("unused")
+    @Data
     public static class ExecRecord {
 
         private Long id;
@@ -74,7 +75,12 @@ public class SubTask {
         /**
          * 锁失效时间
          */
-        private LocalDateTime lockExpireAt;
+        private LocalDateTime lastHeartbeatTime;
+
+        /**
+         * 失败次数
+         */
+        private Integer failureCnt;
     }
 
 }

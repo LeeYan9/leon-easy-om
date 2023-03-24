@@ -47,6 +47,11 @@ public class TaskGroupConfig {
     private int execMaxSize = 5;
 
     /**
+     * 最大故障次数，任务失效次数>={{maxFailureCount}} 时，不再继续处理当前任务
+     */
+    private Integer maxFailureCount;
+
+    /**
      * 获取任务的间隔时间策略
      */
 

@@ -68,7 +68,7 @@ public class AcquireTaskService {
         final DefaultTaskAcquireStrategy defaultAcquireStrategy = new DefaultTaskAcquireStrategy();
         acquireTaskTimingStrategyMap.put(defaultAcquireStrategy.type(), defaultAcquireStrategy);
         final int groupSize = executorConfig.getTaskGroupConfigs().size();
-        ThreadFactory threadFactory = buildThreadFactory("acquire-Task-", false);
+        ThreadFactory threadFactory = buildThreadFactory("acquire-task-srv", false);
         acquireTaskExecutors = new ThreadPoolExecutor(groupSize, groupSize * 2,
                 1, TimeUnit.MINUTES, new SynchronousQueue<>(), threadFactory);
 
@@ -120,27 +120,27 @@ public class AcquireTaskService {
         public void run() {
             String executorId = taskGroupConfig.getExecutorId();
             try {
-                log.info("[acquire-task-srv] [{}] start acquire task-list ", executorId);
+                log.info("[{}] acquire task-list start", executorId);
                 // do something
                 List<SubTaskDO> taskDOList = taskManager.determineTasksOfExec(taskGroupConfig);
                 if (taskDOList.isEmpty()) {
-                    log.info("[acquire-task-srv] ignore task list , acquire task-list is empty ");
+                    log.info("[{}] ignore task list , acquire task-list is empty", executorId);
                     return;
                 }
                 final List<String> jobNos = CollUtils.toList(taskDOList, SubTaskDO::getJobNo);
-                log.info("[acquire-task-srv] [{}] acquire task-list jobNos [{}] ", executorId, jobNos);
+                log.info("[{}] acquire task-list jobNos [{}] ", executorId, jobNos);
                 for (SubTaskDO task : taskDOList) {
-                    log.info("[acquire-task-srv] [{}] ready submit task jobNo [{}] ", executorId, task.getJobNo());
+                    log.info("[{}] ready submit task jobNo [{}] ", executorId, task.getJobNo());
                     taskManager.kernelExecTask(taskGroupConfig, task);
                 }
             } catch (Exception e) {
-                log.error("[acquire-task-srv] execute error", e);
+                log.error("execute error", e);
             } finally {
                 if (!once) {
                     // 准备下次打捞任务
                     final long nextTimestamp = getNextTimestamp(taskGroupConfig);
                     delayQueue.add(new TaskAcquireDelayRunnable(taskGroupConfig, nextTimestamp, false));
-                    log.info("[acquire-task-srv] [{}] wait next acquire task-list nextTimeMs[{}] intervalMs[{}] "
+                    log.info("[{}] wait next acquire task-list nextTimeMs[{}] intervalMs[{}] "
                             , taskGroupConfig.getExecutorId(), nextTimestamp, nextTimestamp - SystemClock.now());
                 }
             }
@@ -160,12 +160,12 @@ public class AcquireTaskService {
                 try {
                     final TaskAcquireDelayRunnable taskAcquireDelayRunnable = delayQueue.take();
                     final TaskGroupConfig taskGroupConfig = taskAcquireDelayRunnable.taskGroupConfig;
-                    log.info("[delay-checker] push [acquire-task-srv] [{}]", taskGroupConfig.getExecutorId());
+                    log.info("push [acquire-task-srv] [{}]", taskGroupConfig.getExecutorId());
                     acquireTaskExecutors.execute(taskAcquireDelayRunnable);
                 } catch (InterruptedException e) {
-                    log.error("[delay-checker] interrupted error", e);
+                    log.error("delay-checker interrupted error", e);
                 } catch (Exception e) {
-                    log.error("[delay-checker] error", e);
+                    log.error("delay-checker error", e);
                 }
             }
         }

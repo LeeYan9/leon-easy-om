@@ -10,6 +10,7 @@ import java.util.Objects;
 
 /**
  * 执行器配置
+ *
  * @author Lyon
  */
 @Data
@@ -20,6 +21,11 @@ public class ExecutorConfig {
     private long hearBeatTimeMills = 1000 * 60 * 5;
 
     private long hearBeatTimeoutInterval = 6;
+
+    /**
+     * 通用缺省值：最大故障次数，任务失效次数>={{maxFailureCount}} 时，不再继续处理当前任务
+     */
+    private int maxFailureCount = 3;
 
     private String tablePrefix;
 

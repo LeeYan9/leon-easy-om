@@ -59,6 +59,6 @@ public class AsyncBatchTaskMybatisAutoConfigure implements InitializingBean {
     @Override
     public void afterPropertiesSet() {
         // do something .
-        // 比如可以尝试修改mybatisPlusProperties
+        // For example, modify the properties of Mybatis Plus Auto Configuration
     }
 }

@@ -60,7 +60,6 @@ public interface SubTaskConverter {
 //            @Mapping(target = "record.owner", source = "owner"),
 //            @Mapping(target = "record.clientId", source = "clientId"),
 //            @Mapping(target = "record.lockStatus", source = "lockStatus"),
-//            @Mapping(target = "record.lockExpireAt", source = "lockExpireAt"),
             @Mapping(target = "record", source = "subTaskDO", qualifiedByName = "subTaskDO_to_record")
     })
     SubTask to(SubTaskDO subTaskDO);
@@ -70,7 +69,6 @@ public interface SubTaskConverter {
 //        to
 //    }
 
-    @Mappings({})
     @Named("subTaskDO_to_record")
     SubTask.ExecRecord toExecRecord(SubTaskDO subTaskDO);
 

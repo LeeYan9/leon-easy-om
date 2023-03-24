@@ -70,8 +70,8 @@
     </appender>
 
     <logger name="com.lyon.easy" level="DEBUG"/>
-    <logger name="com.lyon.easy.async.task.core" level="INFO"/>
-    <logger name="com.lyon.easy.async.task.dal" level="INFO"/>
+<!--    <logger name="com.lyon.easy.async.task.core" level="INFO"/>-->
+<!--    <logger name="com.lyon.easy.async.task.dal" level="INFO"/>-->
 
     <springProfile name="local">
         <root level="info">
