@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration debug="false">
+    <!-- 定义参数变量 -->
+    <!-- 日志级别参数 -->
+    <property name="log.level" value="INFO" />
+    <!-- 文件保留时间 -->
+    <property name="log.maxHistory" value="30" />
+    <!-- 文件大小 -->
+    <property name="log.maxSize" value="4MB"/>
+    <!-- 日志文件是否覆盖 -->
+    <property name="log.append" value="true"/>
+    <!-- 日志输出编码 -->
+    <property name="log.encode" value="UTF-8" />
+    <!-- 日志存储路径 -->
+    <property name="LOG_HOME" value="${user.home}/log"/>
+    <!-- 日志的显式格式 -->
+<!--    <property name="log.pattern"-->
+<!--              value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50}-%msg%n"></property>-->
+
+    <!--
+        1. 文件的命名和加载顺序
+           logback.xml早于application.yml加载，logback-spring.xml晚于application.yml加载
+           如果logback配置需要使用application.yml中的属性，需要命名为logback-spring.xml
+        2. logback使用application.yml中的属性
+           使用springProperty才可使用application.yml中的值 可以设置默认值
+    -->
+    <springProperty scope="context" name="appName" source="spring.application.name"/>
+    <springProperty scope="context" name="appDev" source="server.env"/>
+<!--    <springProperty scope="context" name="kafkaTopic" source="logback.kafka.topic" defaultValue="elk-avatar"/>-->
+<!--    <springProperty scope="context" name="kafkaServers" source="logback.kafka.servers"/>-->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <layout class="ch.qos.logback.classic.PatternLayout">
+                <!-- 时间|环境 |应用名称|错误级别|ip|hostname|[%thread]| %logger{50}| %msg%n -->
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS}|${appDev}|${appName}|%level|%thread|%logger{50}|%msg%n</pattern>
+            </layout>
+        </encoder>
+    </appender>
+
+    <!-- 文件输出策略设置 -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- 文件路径 -->
+        <file>${LOG_HOME}/${appName}.log</file>
+        <!-- 日志输出格式设置-->
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <layout class="ch.qos.logback.classic.PatternLayout">
+                <!-- 时间|环境 |应用名称|错误级别|ip|hostname|[%thread]| %logger{50}| %msg%n -->
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS}|${appDev}|${appName}|%level|%thread|%logger{50}|%msg%n</pattern>
+            </layout>
+        </encoder>
+        <!--FixedWindowRollingPolicy:设置为按照索引的方式滚动，定义文件名称的时候使用%i作为占位符，滚动后会会用角标替换 -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/logback_fixed-%i.log</fileNamePattern>
+            <minIndex>1</minIndex>
+            <maxIndex>3</maxIndex>
+        </rollingPolicy>
+        <!-- 指定文件最大尺寸，达到该尺寸，就触发rollingPolicy对应的策略，maxFileSize属性指定文件大小 -->
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <maxFileSize>${log.maxSize}</maxFileSize>
+        </triggeringPolicy>
+        <!-- 过滤器，过滤掉不是指定日志水平的日志 -->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <!-- 设置日志级别 -->
+            <level>INFO</level>
+            <!-- 如果跟该日志水平相匹配，则接受 -->
+            <onMatch>ACCEPT</onMatch>
+            <!-- 如果跟该日志水平不匹配，则过滤掉 -->
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
+
+    <logger name="com.lyon.easy" level="DEBUG"/>
+<!--    <logger name="com.lyon.easy.async.task.core" level="INFO"/>-->
+<!--    <logger name="com.lyon.easy.async.task.dal" level="INFO"/>-->
+
+    <springProfile name="local">
+        <root level="info">
+            <appender-ref ref="STDOUT"/>
+            <appender-ref ref="FILE"/>
+        </root>
+    </springProfile>
+    <springProfile name="dev">
+        <root level="info">
+            <appender-ref ref="STDOUT"/>
+        </root>
+    </springProfile>
+    <springProfile name="test">
+        <root level="info">
+            <appender-ref ref="STDOUT"/>
+        </root>
+    </springProfile>
+    <springProfile name="stg">
+        <root level="info">
+            <appender-ref ref="STDOUT"/>
+        </root>
+    </springProfile>
+    <springProfile name="prod">
+        <root level="info">
+            <appender-ref ref="STDOUT"/>
+        </root>
+    </springProfile>
+
+</configuration>

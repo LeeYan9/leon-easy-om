@@ -1,0 +1,3 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  com.lyon.easy.async.task.autoconfigure.AsyncBatchTaskAutoConfigure,\
+  com.lyon.easy.async.task.autoconfigure.AsyncBatchTaskMybatisAutoConfigure
